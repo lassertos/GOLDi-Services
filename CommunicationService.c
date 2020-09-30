@@ -1,21 +1,30 @@
-#include "sockets.h"
+#include "ipcsockets.h"
 
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(COMMUNICATION_SERVICE);
-    IPCSocketConnection* programmingService = connectToIPCSocket(PROGRAMMING_SERVICE);
-    if (programmingService == NULL)
+    IPCSocketConnection* webcamService = connectToIPCSocket(WEBCAM_SERVICE);
+    if (webcamService == NULL)
         return -1;
-    char* message = malloc(64001);
 
-    for (int i = 0; i < 64000; i++) 
+    int rc;
+    char buf[4096];
+
+    while( (rc=read(STDIN_FILENO, buf, sizeof(buf))) > 0)
     {
-        message[i] = 'a';
-        message[i+1] = '\0';
-        sendMessageIPC(programmingService, 1, message);
+        char msgContent[rc+1];
+        for (int i = 0; i < rc; i++)
+        {
+            msgContent[i] = buf[i];
+        }
+        msgContent[rc] = '\0';
+        if (rc < sizeof(buf))
+            msgContent[rc-1] = '\0';
+        if (!strcmp(msgContent, "close"))
+            break;
+        sendMessageIPC(webcamService, 1, msgContent);
     }
 
-    free(message);
-    closeIPCConnection(programmingService);
+    closeIPCConnection(webcamService);
     return 0;
 }

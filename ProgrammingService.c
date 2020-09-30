@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include "sockets.h"
+#include "ipcsockets.h"
 
 int main(int argc, char const *argv[])
 {
@@ -8,14 +7,24 @@ int main(int argc, char const *argv[])
     if (communicationService == NULL)
         return -1;
 
-    int done = 0;
-
-    while(!done)
+    while(1)
     {
         Message msg = receiveMessageIPC(communicationService);
-        printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+        printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %ld\nMESSAGE CONTENT: %s\n", msg.type, strlen(msg.content), msg.content);
+        free(msg.content);
+        if (msg.type == -1)
+        {
+            communicationService->open = 0;
+            closeIPCConnection(communicationService);
+            return -1;
+        }
+        else if (msg.type == 0)
+        {
+            communicationService->open = 0;
+            closeIPCConnection(communicationService);
+            return 0;
+        }
     }
 
-    closeIPCConnection(communicationService);
     return 0;
 }

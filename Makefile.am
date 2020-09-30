@@ -1,5 +1,10 @@
-bin_PROGRAMS = gsvfplayer
-gsvfplayer_SOURCES = goldi-svf-player.c
-gsvfplayer_LDADD = -lbcm2835
-gsvfplayer_LDFLAGS = -g
-EXTRA_DIST = bcmGPIO.c sysfsGPIO.c nativeGPIO.c
+bin_PROGRAMS = CommunicationService ProgrammingService WebcamService
+CommunicationService_SOURCES = CommunicationService.c ipcsockets.c ipcsockets.h
+CommunicationService_LDADD = -lsystemd
+CommunicationService_LDFLAGS = -g
+ProgrammingService_SOURCES = ProgrammingService.c ipcsockets.c ipcsockets.h
+ProgrammingService_LDADD = -lsystemd
+ProgrammingService_LDFLAGS = -g
+WebcamService_SOURCES = WebcamService.c websockets.c websockets.h ipcsockets.c ipcsockets.h
+WebcamService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
+WebcamService_LDFLAGS = -g

@@ -1,4 +1,4 @@
-AC_INIT([gsvfplayer],[1.0])
+AC_INIT([goldiservices],[1.0])
 AM_INIT_AUTOMAKE
 AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
