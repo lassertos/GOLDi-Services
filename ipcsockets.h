@@ -27,10 +27,11 @@
  */
 typedef struct 
 {
-    int     fd;
-    char*   socketname;
-    char*   buffer;
-    int     open;
+    int         fd;
+    char*       socketname;
+    char*       buffer;
+    int         open;
+    pthread_t   thread;
 } IPCSocketConnection;
 
 /*
@@ -55,9 +56,11 @@ typedef struct
     char*   content;
 } SocketMessage;
 
+typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
+
 int createIPCSocket();
-IPCSocketConnection* connectToIPCSocket(char* socketname);
-IPCSocketConnection* acceptIPCConnection(int fd, char* socketname);
+IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler);
+IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler);
 int sendMessageIPC(IPCSocketConnection* ipcsc, int messageType, char* msg);
 Message receiveMessageIPC(IPCSocketConnection* ipcsc);
 void closeIPCConnection(IPCSocketConnection* ipcsc);

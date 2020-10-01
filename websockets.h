@@ -12,7 +12,7 @@
 #define COMMUNICATION_PROTOCOL (struct lws_protocols){ "GOLDi-Communication-Protocol", callback_communication, 0, 0 }
 #define WEBCAM_PROTOCOL (struct lws_protocols){ "GOLDi-Webcam-Protocol", callback_webcam, 0, 0 }
 
-typedef int(*msgHandler)(struct lws*, char*, int);
+typedef int(*msgHandler)(struct lws*, char*);
 typedef struct 
 {
     lws_sorted_usec_list_t              sul;
@@ -25,12 +25,12 @@ typedef struct
     char*                               serveraddress;
     msgHandler                          messageHandler;
     int                                 isServer;
+    pthread_t                           thread;
 } websocketConnection;
 
-void websocketConnectClient(lws_sorted_usec_list_t *sul);
 int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, msgHandler messageHandler, int isServer);
 int callback_communication(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
-int sendMessageWebsocket(struct lws *wsi, char* msg, int length);
+int sendMessageWebsocket(struct lws *wsi, char* msg);
 
 #endif

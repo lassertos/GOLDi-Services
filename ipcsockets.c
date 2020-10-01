@@ -68,7 +68,7 @@ int createIPCSocket(char* socketname)
  *  Creates a new socket connection to the socket specified by socketname.
  *  Used for a connection request from the client-side. 
  */ 
-IPCSocketConnection* connectToIPCSocket(char* socketname)
+IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler)
 {
     int fd;
     struct sockaddr_un addr;
@@ -98,6 +98,11 @@ IPCSocketConnection* connectToIPCSocket(char* socketname)
     	return NULL;
     }
 
+    if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
+        fprintf(stderr, "Error creating IPC socket thread\n");
+        return NULL;
+    }
+
     printf("started connection with %s\n", socketname);
 
     return connection;
@@ -107,7 +112,7 @@ IPCSocketConnection* connectToIPCSocket(char* socketname)
  *  Accepts an incoming connection request on the socket specified by fd
  *  from the socket specified by socketname.
  */ 
-IPCSocketConnection* acceptIPCConnection(int fd, char* socketname)
+IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler)
 {
     IPCSocketConnection* connection = malloc(sizeof *connection);
     connection->socketname = socketname;
@@ -118,6 +123,11 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname)
     {
         free(connection);
         perror("accept error");
+        return NULL;
+    }
+
+    if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
+        fprintf(stderr, "Error creating IPC socket thread\n");
         return NULL;
     }
 

@@ -17,9 +17,21 @@ static const lws_retry_bo_t retry = {
 };
 
 /*
+ *	The function for the thread of a websocket connection 
+ */
+static void handleWebsocket(websocketConnection* wsc)
+{
+    while(!wsc->interrupted && lws_service(wsc->context, 0) >= 0);
+    wsc->interrupted = 1;
+    lws_context_destroy(wsc->context);
+	lwsl_user("Completed\n");
+    return;
+}
+
+/*
  *  Connects to the specified address and port
  */ 
-void websocketConnectClient(lws_sorted_usec_list_t *sul)
+static void websocketConnectClient(lws_sorted_usec_list_t *sul)
 {
 	websocketConnection *wsc = lws_container_of(sul, websocketConnection, sul);
 	struct lws_client_connect_info i;
@@ -86,11 +98,23 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
     wsc->serveraddress = serveraddress;
     wsc->port = port;
     wsc->messageHandler = messageHandler;
+
+	if (!isServer)
+	{
+		lws_sul_schedule(wsc->context, 0, &wsc->sul, websocketConnectClient, 1);
+	}
+
+	if(pthread_create(&wsc->thread, NULL, handleWebsocket, wsc)) {
+        fprintf(stderr, "Error creating Websocket thread\n");
+        return 1;
+    }
+
     return 0;
 }
 
-int sendMessageWebsocket(struct lws *wsi, char* msg, int length)
+int sendMessageWebsocket(struct lws *wsi, char* msg)
 {
+	int length = strlen(msg) + 1;
 	unsigned char* message = malloc(LWS_PRE + length);
 	for (int i = 0; i < length-1; i++)
 	{
@@ -99,9 +123,11 @@ int sendMessageWebsocket(struct lws *wsi, char* msg, int length)
 	message[LWS_PRE + length - 1] = '\0';
 	int m = lws_write(wsi, message+LWS_PRE, length, LWS_WRITE_TEXT);
 	if (m < length) {
+		free(message);
 		lwsl_err("ERROR %d writing to ws\n", m);
 		return -1;
 	}
+	free(message);
 	return 0;
 }
 
@@ -113,6 +139,8 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		wsc = (websocketConnection *)user;
 	else
 		wsc = (websocketConnection*)lws_context_user(lws_get_context(wsi));
+
+	char* message;
 
 	switch (reason) {
 
@@ -129,7 +157,10 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_RECEIVE:
-		wsc->messageHandler(wsi, (char*)in, len);
+		message = malloc(len + 1);
+		memcpy(message, (char*)in, len);
+		message[len] = '\0';
+		wsc->messageHandler(wsi, message);
 		break;
 
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -139,7 +170,10 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
-		wsc->messageHandler(wsi, (char*)in, len);
+		message = malloc(len + 1);
+		memcpy(message, (char*)in, len);
+		message[len] = '\0';
+		wsc->messageHandler(wsi, message);
 		break;
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -180,6 +214,7 @@ int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason,
 		                    void *user, void *in, size_t len)
 {
 	websocketConnection *wsc = (websocketConnection *)user;
+	char* message;
 
 	switch (reason) {
 
@@ -190,7 +225,10 @@ int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
-		wsc->messageHandler(wsi, (char*)in, len);
+		message = malloc(len + 1);
+		memcpy(message, (char*)in, len);
+		message[len] = '\0';
+		wsc->messageHandler(wsi, message);
 		break;
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:

@@ -1,9 +1,14 @@
 #include "ipcsockets.h"
 
+static int messageHandlerIPC(IPCSocketConnection* ipc)
+{
+    return 0;
+}
+
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(PROGRAMMING_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE);
+    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
         return -1;
 
