@@ -1,6 +1,6 @@
 bin_PROGRAMS = CommunicationService ProgrammingService WebcamService
-CommunicationService_SOURCES = CommunicationService.c ipcsockets.c ipcsockets.h
-CommunicationService_LDADD = -lsystemd
+CommunicationService_SOURCES = CommunicationService.c websockets.c websockets.h ipcsockets.c ipcsockets.h
+CommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
 CommunicationService_LDFLAGS = -g
 ProgrammingService_SOURCES = ProgrammingService.c ipcsockets.c ipcsockets.h
 ProgrammingService_LDADD = -lsystemd

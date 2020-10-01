@@ -22,13 +22,13 @@ static void handleIPCSocket(IPCSocketConnection* ipcsc)
             {
                 ipcsc->open = 0;
                 closeIPCConnection(ipcsc);
-                return -1;
+                return;
             }
             else if (msg.type == 0)
             {
                 ipcsc->open = 0;
                 closeIPCConnection(ipcsc);
-                return 0;
+                return;
             }
         }
     }
@@ -42,9 +42,9 @@ static void handleWebsocket()
 	lwsl_user("Completed\n");
 }
 
-static int handleWebsocketMessage(char* message)
+static int handleWebsocketMessage(char* message, int length)
 {
-    printf("WEBSOCKET: %s\n", message);
+    printf("WEBSOCKET: %.*s\n", length, message);
 }
 
 int main(int argc, char const *argv[])
@@ -58,11 +58,10 @@ int main(int argc, char const *argv[])
         return -1;
 
     /* Websocket creation */
-    if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADRESS, GOLDi_SERVERPORT, handleWebsocketMessage))
+    if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }
-    lws_cmdline_option_handle_builtin(argc, argv, &wsc.info);
 
 	/* schedule the first client connection attempt to happen immediately */
 	lws_sul_schedule(wsc.context, 0, &wsc.sul, websocketConnectClient, 1);

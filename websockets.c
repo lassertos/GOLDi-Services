@@ -51,7 +51,7 @@ void websocketConnectClient(lws_sorted_usec_list_t *sul)
     }
 }
 
-int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, int (*messageHandler)(char*))
+int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, msgHandler messageHandler, int isServer)
 {
     struct lws_context_creation_info info;
     struct lws_protocols protocols[] = {
@@ -59,11 +59,22 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
 	    { NULL, NULL, 0, 0 }
     };
 	memset(&info, 0, sizeof info);
-    //lws_cmdline_option_handle_builtin(argc, argv, &wsc.info);
+	int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
+    lws_set_log_level(logs, NULL);
 
 	lwsl_user("GOLDi Webcam Service\n");
 	
-	info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
+	if(isServer)
+	{
+		info.options = LWS_SERVER_OPTION_HTTP_HEADERS_SECURITY_BEST_PRACTICES_ENFORCE;
+		info.port = port;
+		info.user = wsc;
+	}
+	else
+	{
+		info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
+	}
+		
 	info.protocols = protocols;
 
 	wsc->context = lws_create_context(&info);
@@ -78,12 +89,48 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
     return 0;
 }
 
+int sendMessageWebsocket(struct lws *wsi, char* msg, int length)
+{
+	unsigned char* message = malloc(LWS_PRE + length);
+	for (int i = 0; i < length-1; i++)
+	{
+		message[LWS_PRE + i] = (unsigned char)msg[i];
+	}
+	message[LWS_PRE + length - 1] = '\0';
+	int m = lws_write(wsi, message+LWS_PRE, length, LWS_WRITE_TEXT);
+	if (m < length) {
+		lwsl_err("ERROR %d writing to ws\n", m);
+		return -1;
+	}
+	return 0;
+}
+
 int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		                    void *user, void *in, size_t len)
 {
-	websocketConnection *wsc = (websocketConnection *)user;
+	websocketConnection *wsc;
+	if (user != NULL)
+		wsc = (websocketConnection *)user;
+	else
+		wsc = (websocketConnection*)lws_context_user(lws_get_context(wsi));
 
 	switch (reason) {
+
+	case LWS_CALLBACK_PROTOCOL_INIT:
+		break;
+
+	case LWS_CALLBACK_ESTABLISHED:
+		break;
+
+	case LWS_CALLBACK_CLOSED:
+		break;
+
+	case LWS_CALLBACK_SERVER_WRITEABLE:
+		break;
+
+	case LWS_CALLBACK_RECEIVE:
+		wsc->messageHandler(wsi, (char*)in, len);
+		break;
 
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 		lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
@@ -92,7 +139,7 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
-		wsc->messageHandler((char*)in);
+		wsc->messageHandler(wsi, (char*)in, len);
 		break;
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -106,7 +153,8 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 	}
 
-	return lws_callback_http_dummy(wsi, reason, user, in, len);
+	//return lws_callback_http_dummy(wsi, reason, user, in, len);
+	return 0;
 
 do_retry:
 	/*
@@ -142,14 +190,7 @@ int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
-		if (((char *)in)[0] == '{')
-		{
-			wsc->messageHandler((char*)in);
-		}
-		else
-		{
-			lwsl_user("RECEIVED: %s\n", (char *)in);
-		}
+		wsc->messageHandler(wsi, (char*)in, len);
 		break;
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -163,7 +204,8 @@ int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 	}
 
-	return lws_callback_http_dummy(wsi, reason, user, in, len);
+	//return lws_callback_http_dummy(wsi, reason, user, in, len);
+	return 0;
 
 do_retry:
 	/*
