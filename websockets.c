@@ -73,8 +73,6 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
 	memset(&info, 0, sizeof info);
 	int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
     lws_set_log_level(logs, NULL);
-
-	lwsl_user("GOLDi Webcam Service\n");
 	
 	if(isServer)
 	{
@@ -114,13 +112,12 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
 
 int sendMessageWebsocket(struct lws *wsi, char* msg)
 {
-	int length = strlen(msg) + 1;
+	int length = strlen(msg);
 	unsigned char* message = malloc(LWS_PRE + length);
-	for (int i = 0; i < length-1; i++)
+	for (int i = 0; i < length; i++)
 	{
-		message[LWS_PRE + i] = (unsigned char)msg[i];
+		message[LWS_PRE + i] = msg[i];
 	}
-	message[LWS_PRE + length - 1] = '\0';
 	int m = lws_write(wsi, message+LWS_PRE, length, LWS_WRITE_TEXT);
 	if (m < length) {
 		free(message);
@@ -129,6 +126,16 @@ int sendMessageWebsocket(struct lws *wsi, char* msg)
 	}
 	free(message);
 	return 0;
+}
+
+static char* connectMessage(char* ID)
+{
+	cJSON* connectMsg = cJSON_CreateObject();
+	cJSON_AddStringToObject(connectMsg, "message", "Connect");
+	cJSON_AddStringToObject(connectMsg, "senderID", ID);
+	char* msg = cJSON_Print(connectMsg);
+	cJSON_Delete(connectMsg);
+	return msg; 
 }
 
 int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
@@ -177,6 +184,10 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+		wsc->connectionEstablished = 1;
+		char* connectMsg = connectMessage(wsc->ID);
+        sendMessageWebsocket(wsi, connectMsg);
+		free(connectMsg);
 		lwsl_user("%s: established\n", __func__);
 		break;
 

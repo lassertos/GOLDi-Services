@@ -5,9 +5,10 @@
 #include <cjson/cJSON.h>
 #include <signal.h>
 #include <assert.h>
+#include <pthread.h>
 
-#define GOLDi_SERVERADRESS "192.168.179.24"
-#define GOLDi_SERVERPORT 8081
+#define GOLDi_SERVERADDRESS "192.168.179.24"
+#define GOLDi_SERVERPORT 8082
 
 #define COMMUNICATION_PROTOCOL (struct lws_protocols){ "GOLDi-Communication-Protocol", callback_communication, 0, 0 }
 #define WEBCAM_PROTOCOL (struct lws_protocols){ "GOLDi-Webcam-Protocol", callback_webcam, 0, 0 }
@@ -25,6 +26,8 @@ typedef struct
     char*                               serveraddress;
     msgHandler                          messageHandler;
     int                                 isServer;
+    char*                               ID;
+    int                                 connectionEstablished;
     pthread_t                           thread;
 } websocketConnection;
 

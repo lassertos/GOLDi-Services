@@ -1,6 +1,8 @@
 #include "ipcsockets.h"
 
-static int messageHandlerIPC(IPCSocketConnection* ipc)
+IPCSocketConnection* communicationService;
+
+static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
     return 0;
 }
@@ -8,14 +10,14 @@ static int messageHandlerIPC(IPCSocketConnection* ipc)
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(PROGRAMMING_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
         return -1;
 
     while(1)
     {
         Message msg = receiveMessageIPC(communicationService);
-        printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %ld\nMESSAGE CONTENT: %s\n", msg.type, strlen(msg.content), msg.content);
+        printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
         free(msg.content);
         if (msg.type == -1)
         {

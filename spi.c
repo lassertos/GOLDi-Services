@@ -2,6 +2,10 @@
 
 int setupSPIInterface()
 {
+    if (!bcm2835_init())
+    {
+        return -1;
+    }
     if (!bcm2835_spi_begin())
     {
         return -1;
@@ -16,4 +20,17 @@ int setupSPIInterface()
 void closeSPIInterface()
 {
     bcm2835_spi_end();
+}
+
+void executeSPICommand(unsigned char* command, int length)
+{
+    for (int i = 0; i < length; i++)
+    {  
+        printf("SPICOMMAND: %x\n", command[i] & 0xff);
+    }
+    bcm2835_spi_transfern(command, length);
+    for (int i = 0; i < length; i++)
+    {  
+        printf("SPIANSWER: %x\n", command[i] & 0xff);
+    }
 }

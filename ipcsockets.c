@@ -139,29 +139,21 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler
 /*
  *  Sends a message to the IPC socket specified by ipcsc.
  */
-int sendMessageIPC(IPCSocketConnection* ipcsc, int messageType, char* msg)
+int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* msg, int length)
 {
-    int fragments = 1;
-    if (msg != NULL)
-    {
-        fragments = strlen(msg) / (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE) + 1;
-    }
+    int fragments = length / (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE) + 1;
 
     int messageLength[fragments];
     int completeLength[fragments];
-    if (fragments != 0)
+
+    for (int i = 0; i < fragments-1; i++)
     {
-        for (int i = 0; i < fragments -1; i++)
-        {
-            messageLength[i] = MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE;
-            completeLength[i] = MAX_MESSAGE_SIZE;
-        }
-        if (msg != NULL)
-            messageLength[fragments-1] = strlen(msg) % (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE);
-        else
-            messageLength[fragments-1] = 0;
-        completeLength[fragments-1] = messageLength[fragments-1] + MESSAGE_HEADER_SIZE;
+        messageLength[i] = MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE;
+        completeLength[i] = MAX_MESSAGE_SIZE;
     }
+
+    messageLength[fragments-1] = length % (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE);
+    completeLength[fragments-1] = messageLength[fragments-1] + MESSAGE_HEADER_SIZE;
 
     for (int i = 0; i < fragments; i++)
     {
@@ -185,7 +177,7 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, int messageType, char* msg)
         free(isLastFragment);
 
         // copy message into buffer
-        strncpy(ipcsc->buffer+MESSAGE_HEADER_SIZE, msg+i*(MAX_MESSAGE_SIZE-MESSAGE_HEADER_SIZE), messageLength[i]);
+        memcpy(ipcsc->buffer+MESSAGE_HEADER_SIZE, msg+i*(MAX_MESSAGE_SIZE-MESSAGE_HEADER_SIZE), messageLength[i]);
 
         if (write(ipcsc->fd, ipcsc->buffer, completeLength[i]) != completeLength[i])
         {
@@ -251,9 +243,9 @@ static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
     free(fragmentNumber);
     free(isLastFragment);
 
-    if (result.type == -1)
+    if (result.type == MSGTYPE_INTERRUPTED)
     {   
-        result.type = -1;
+        result.type = MSGTYPE_INTERRUPTED;
         result.length = 0;
         result.fragmentNumber = 0;
         result.isLastFragment = 1;
@@ -274,6 +266,7 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
     SocketMessage incoming = receiveSocketMessageIPC(ipcsc);
 
     result.type = incoming.type;
+    result.length = incoming.length;
     result.content = malloc(incoming.length+1);
     memcpy(result.content, incoming.content, incoming.length);
 
@@ -283,6 +276,7 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
         incoming = receiveSocketMessageIPC(ipcsc);
         result.content = realloc(result.content, incoming.fragmentNumber * (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE) + incoming.length + 1);
         memcpy(result.content + incoming.fragmentNumber * (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE), incoming.content, incoming.length);
+        result.length += incoming.length;
     }
 
     free(incoming.content);
@@ -296,7 +290,7 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
 void closeIPCConnection(IPCSocketConnection* ipcsc)
 {
     if (ipcsc->open)
-        sendMessageIPC(ipcsc, 0, NULL);
+        sendMessageIPC(ipcsc, MSGTYPE_CLOSEDCONNECTION, NULL, 0);
     close(ipcsc->fd);
     printf("closed connection to %s\n", ipcsc->socketname);
     free(ipcsc);

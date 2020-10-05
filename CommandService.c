@@ -10,40 +10,20 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
         if(ipcsc->open)
         {
             Message msg = receiveMessageIPC(ipcsc);
-            printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
-            char* spiAnswer;
-            switch (msg.type)
+            printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %ld\nMESSAGE CONTENT: %s\n", msg.type, strlen(msg.content), msg.content);
+            free(msg.content);
+            if (msg.type == -1)
             {
-            case MSGTYPE_INTERRUPTED:
                 ipcsc->open = 0;
                 closeIPCConnection(ipcsc);
-                free(msg.content);
                 return -1;
-                break;
-
-            case MSGTYPE_CLOSEDCONNECTION:
+            }
+            else if (msg.type == 0)
+            {
                 ipcsc->open = 0;
                 closeIPCConnection(ipcsc);
-                free(msg.content);
                 return 0;
-                break;
-
-            case MSGTYPE_SPICOMMAND:
-                spiAnswer = malloc(msg.length);
-                memcpy(spiAnswer, msg.content, msg.length);
-                executeSPICommand(spiAnswer, msg.length);
-                sendMessageIPC(ipcsc, MSGTYPE_SPIANSWER, spiAnswer, msg.length);
-                free(msg.content);
-                free(spiAnswer);
-                break;
-            
-            default:
-                break;
             }
-        }
-        else
-        {
-            break;
         }
     }
 }

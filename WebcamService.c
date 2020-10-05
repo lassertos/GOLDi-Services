@@ -9,7 +9,7 @@ static void sigint_handler(int sig)
 	wsc.interrupted = 1;
 }
 
-static int handleIPCSocket(IPCSocketConnection* ipcsc)
+static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 {
     while(1)
     {
@@ -30,6 +30,10 @@ static int handleIPCSocket(IPCSocketConnection* ipcsc)
                 closeIPCConnection(ipcsc);
                 return 0;
             }
+        }
+        else
+        {
+            break;
         }
     }
 }
@@ -53,9 +57,12 @@ int main(int argc, char const *argv[])
 
     /* IPC socket creation */
     int fd = createIPCSocket(WEBCAM_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, handleIPCSocket);
+    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
     if (communicationService == NULL)
+    {
+        printf("Connection to Communication Service could not be established!\n");
         return -1;
+    }
 
     /* Websocket creation */
     /*if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))

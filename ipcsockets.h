@@ -8,6 +8,7 @@
 #include <systemd/sd-daemon.h>
 #include <string.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define COMMUNICATION_SERVICE "GOLDiCommunicationService"
 #define PROGRAMMING_SERVICE "GOLDiProgrammingService"
@@ -34,13 +35,22 @@ typedef struct
     pthread_t   thread;
 } IPCSocketConnection;
 
+typedef enum 
+{
+    MSGTYPE_INTERRUPTED = -1,
+    MSGTYPE_CLOSEDCONNECTION = 0,
+    MSGTYPE_SPICOMMAND = 1,
+    MSGTYPE_SPIANSWER = 2
+} MessageType;
+
 /*
  *  A message with type and content.
  */
 typedef struct
 {
-    int     type;
-    char*   content;
+    MessageType     type;
+    int             length;
+    char*           content;
 } Message;
 
 /*
@@ -49,11 +59,11 @@ typedef struct
  */
 typedef struct
 {
-    int     type;
-    int     length;
-    int     fragmentNumber;
-    int     isLastFragment;
-    char*   content;
+    MessageType type;
+    int         length;
+    int         fragmentNumber;
+    int         isLastFragment;
+    char*       content;
 } SocketMessage;
 
 typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
@@ -61,7 +71,7 @@ typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
 int createIPCSocket();
 IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler);
 IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler);
-int sendMessageIPC(IPCSocketConnection* ipcsc, int messageType, char* msg);
+int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* msg, int length);
 Message receiveMessageIPC(IPCSocketConnection* ipcsc);
 void closeIPCConnection(IPCSocketConnection* ipcsc);
 
