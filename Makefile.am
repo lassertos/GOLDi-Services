@@ -1,4 +1,4 @@
-bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService CommunicationServiceCU CommunicationServicePS
+bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService BEP
 CommunicationService_SOURCES = CommunicationService.c websockets.c websockets.h ipcsockets.c ipcsockets.h
 CommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
 CommunicationService_LDFLAGS = -g
@@ -11,3 +11,5 @@ WebcamService_LDFLAGS = -g
 ProtectionService_SOURCES = ProtectionService.c ipcsockets.c ipcsockets.h spi.h spi.c
 ProtectionService_LDADD = -lsystemd -lpthread -lbcm2835
 ProtectionService_LDFLAGS = -g
+BEP_SOURCES = BooleanExpressionParser.c stack.c queue.c
+BEP_LDFLAGS = -g

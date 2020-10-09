@@ -13,6 +13,7 @@
 #define COMMUNICATION_SERVICE "GOLDiCommunicationService"
 #define PROGRAMMING_SERVICE "GOLDiProgrammingService"
 #define PROTECTION_SERVICE "GOLDiProtectionService"
+#define COMMAND_SERVICE "GOLDiCommandService"
 #define INITIALIZATION_SERVICE "GOLDiInitializationService"
 #define WEBCAM_SERVICE "GOLDiWebcamService"
 
