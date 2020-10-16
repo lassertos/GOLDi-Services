@@ -1,5 +1,6 @@
 AC_INIT([goldiservices],[1.0])
 AM_INIT_AUTOMAKE
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
+AC_PROG_RANLIB
 AC_PROG_CC
 AC_OUTPUT

@@ -1,4 +1,4 @@
-#include "ipcsockets.h"
+#include "interfaces/ipcsockets.h"
 
 IPCSocketConnection* communicationService;
 

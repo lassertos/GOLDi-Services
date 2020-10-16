@@ -1,5 +1,5 @@
-#include "ipcsockets.h"
-#include "spi.h"
+#include "interfaces/ipcsockets.h"
+#include "interfaces/spi.h"
 
 static IPCSocketConnection* communicationService;
 

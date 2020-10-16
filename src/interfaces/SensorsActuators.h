@@ -1,9 +1,9 @@
 #ifndef SENSORSACTUATORS_H
 #define SENSORSACTUATORS_H
 
-#include "ExpressionParsers.h"
+#include "../parsers/ExpressionParsers.h"
 #include "spi.h"
-#include "json.h"
+#include "../parsers/json.h"
 #include <stdio.h>
 
 typedef enum 

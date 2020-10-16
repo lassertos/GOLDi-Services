@@ -1,4 +1,5 @@
 #include "spi.h"
+#include <string.h>
 
 int setupSPIInterface()
 {
@@ -24,7 +25,7 @@ void closeSPIInterface()
 
 spiAnswer* executeSPICommand(spiCommand command)
 {
-    spiAnswer* answer = malloc(answer);
+    spiAnswer* answer = malloc(sizeof(*answer));
     int completeCommandLength = command.commandLength + command.dataLength + command.answerLength;
     char* completeCommand = malloc(completeCommandLength);
     if (completeCommand == NULL)

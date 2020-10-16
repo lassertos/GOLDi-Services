@@ -1,6 +1,6 @@
 #include <pthread.h>
-#include "websockets.h"
-#include "ipcsockets.h"
+#include "interfaces/websockets.h"
+#include "interfaces/ipcsockets.h"
 
 static websocketConnection wsc;
 

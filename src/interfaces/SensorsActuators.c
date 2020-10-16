@@ -46,7 +46,7 @@ Sensor* getSensorWithID(Sensor* sensors, char* id, int sensorcount)
     Sensor* current = sensors;
     for (int i = 0; i < sensorcount; i++)
     {
-        if (!strcmp(current->SensorID, id))
+        if (!strcmp(current->sensorID, id))
         {
             return current;
         }
@@ -60,7 +60,7 @@ Actuator* getActuatorWithID(Actuator* actuators, char* id, int actuatorcount)
     Actuator* current = actuators;
     for (int i = 0; i < actuatorcount; i++)
     {
-        if (!strcmp(current->ActuatorID, id))
+        if (!strcmp(current->actuatorID, id))
         {
             return current;
         }

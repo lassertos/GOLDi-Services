@@ -1,6 +1,6 @@
-#include "ipcsockets.h"
-#include "spi.h"
-#include "SensorsActuators.h"
+#include "interfaces/ipcsockets.h"
+#include "interfaces/spi.h"
+#include "interfaces/SensorsActuators.h"
 
 static IPCSocketConnection* communicationService;
 Sensor* sensors;
@@ -34,7 +34,7 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
                 case IPCMSGTYPE_SPICOMMAND:
                     spiAnswer = malloc(msg.length);
                     memcpy(spiAnswer, msg.content, msg.length);
-                    executeSPICommand(spiAnswer, msg.length);
+                    //executeSPICommand(spiAnswer, msg.length);
                     sendMessageIPC(ipcsc, IPCMSGTYPE_SPIANSWER, spiAnswer, msg.length);
                     free(spiAnswer);
                     break;

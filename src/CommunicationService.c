@@ -1,6 +1,6 @@
-#include "ipcsockets.h"
-#include "websockets.h"
-#include "utils.h"
+#include "interfaces/ipcsockets.h"
+#include "interfaces/websockets.h"
+#include "utils/utils.h"
 
 static websocketConnection wscClient;
 static IPCSocketConnection* protectionService;

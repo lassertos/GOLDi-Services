@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "stack.h"
-#include "queue.h"
+#include "../utils/stack.h"
+#include "../utils/queue.h"
 #include "tinyexpr.h"
 
 /* Common Fields */
