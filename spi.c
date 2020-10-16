@@ -22,15 +22,44 @@ void closeSPIInterface()
     bcm2835_spi_end();
 }
 
-void executeSPICommand(unsigned char* command, int length)
+spiAnswer* executeSPICommand(spiCommand command)
 {
-    for (int i = 0; i < length; i++)
-    {  
-        printf("SPICOMMAND: %x\n", command[i] & 0xff);
+    spiAnswer* answer = malloc(answer);
+    int completeCommandLength = command.commandLength + command.dataLength + command.answerLength;
+    char* completeCommand = malloc(completeCommandLength);
+    if (completeCommand == NULL)
+    {
+        return NULL;
     }
-    bcm2835_spi_transfern(command, length);
-    for (int i = 0; i < length; i++)
-    {  
-        printf("SPIANSWER: %x\n", command[i] & 0xff);
+
+    memcpy(completeCommand, command.command, command.commandLength);
+    memcpy(completeCommand + command.commandLength, command.data, command.dataLength);
+    for (int i = 0; i < command.answerLength; i++)
+    {
+        completeCommand[command.commandLength + command.dataLength + i] = 0;
     }
+
+    for (int i = 0; i < completeCommandLength - command.answerLength; i++)
+    {  
+        printf("SPICOMMAND: %x\n", completeCommand[i] & 0xff);
+    }
+    bcm2835_spi_transfern(completeCommand, completeCommandLength);
+    for (int i = 0; i < command.answerLength; i++)
+    {  
+        printf("SPIANSWER: %x\n", completeCommand[i] & 0xff);
+    }
+
+    if (command.answerLength > 0)
+    {
+        answer->answer = realloc(completeCommand, command.answerLength);
+    }
+    else 
+    {
+        answer->answer = NULL;
+        free(completeCommand);
+    }    
+
+    answer->answerLength = command.answerLength;
+
+    return answer;
 }

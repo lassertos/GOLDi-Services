@@ -1,7 +1,10 @@
 #include "ipcsockets.h"
 #include "spi.h"
+#include "SensorsActuators.h"
 
 static IPCSocketConnection* communicationService;
+Sensor* sensors;
+Actuator* actuators;
 
 static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 {
@@ -9,36 +12,37 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
     {
         if(ipcsc->open)
         {
-            Message msg = receiveMessageIPC(ipcsc);
-            printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
-            char* spiAnswer;
-            switch (msg.type)
+            if(hasMessages(ipcsc))
             {
-            case MSGTYPE_INTERRUPTED:
-                ipcsc->open = 0;
-                closeIPCConnection(ipcsc);
-                free(msg.content);
-                return -1;
-                break;
+                Message msg = receiveMessageIPC(ipcsc);
+                printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+                char* spiAnswer;
+                switch (msg.type)
+                {
+                case IPCMSGTYPE_INTERRUPTED:
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    return -1;
+                    break;
 
-            case MSGTYPE_CLOSEDCONNECTION:
-                ipcsc->open = 0;
-                closeIPCConnection(ipcsc);
-                free(msg.content);
-                return 0;
-                break;
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    return 0;
+                    break;
 
-            case MSGTYPE_SPICOMMAND:
-                spiAnswer = malloc(msg.length);
-                memcpy(spiAnswer, msg.content, msg.length);
-                executeSPICommand(spiAnswer, msg.length);
-                sendMessageIPC(ipcsc, MSGTYPE_SPIANSWER, spiAnswer, msg.length);
+                case IPCMSGTYPE_SPICOMMAND:
+                    spiAnswer = malloc(msg.length);
+                    memcpy(spiAnswer, msg.content, msg.length);
+                    executeSPICommand(spiAnswer, msg.length);
+                    sendMessageIPC(ipcsc, IPCMSGTYPE_SPIANSWER, spiAnswer, msg.length);
+                    free(spiAnswer);
+                    break;
+                
+                default:
+                    break;
+                }
                 free(msg.content);
-                free(spiAnswer);
-                break;
-            
-            default:
-                break;
             }
         }
         else
@@ -50,11 +54,6 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 
 int main(int argc, char const *argv[])
 {
-    if(setupSPIInterface() < 0)
-    {
-        printf("Setup of SPI-interface failed!\n");
-        return -1;
-    }
 
     int fd = createIPCSocket(PROTECTION_SERVICE);
     IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
@@ -64,9 +63,20 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    pthread_join(communicationService->thread, NULL);
+    while(1)
+    {
+        /* Read all IPC Messages and update CurrentActuator */
+        while (hasMessages(communicationService));
+    
+        /* Save the Sensorvalues in CurrentSensor */
 
-    closeSPIInterface();
+        /* Check the Protection rules */
+
+        /* Send the CurrentActuator values to the FPGA */
+
+    }
+
+    pthread_join(communicationService->thread, NULL);
 
     return 0;
 }

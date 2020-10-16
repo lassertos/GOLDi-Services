@@ -1,5 +1,6 @@
 #include "ipcsockets.h"
 #include "websockets.h"
+#include "utils.h"
 
 static websocketConnection wscClient;
 static IPCSocketConnection* protectionService;
@@ -35,7 +36,7 @@ static int handleWebsocketMessageClient(struct lws* wsi, char* message)
                     spiCommands = realloc(spiCommands, count);
                 spiCommands[count-1] = spiCommand->valueint;
             }
-            sendMessageIPC(protectionService, MSGTYPE_SPICOMMAND, spiCommands, count);
+            sendMessageIPC(protectionService, IPCMSGTYPE_SPICOMMAND, spiCommands, count);
             free(message);
             cJSON_Delete(msgJSON);
         }
@@ -55,46 +56,49 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
     {
         if(ipcsc->open)
         {
-            Message msg = receiveMessageIPC(ipcsc);
-            printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
-            cJSON* SPIanswer;
-            cJSON* SPIanswerBytes;
-            cJSON* SPIcommand;
-            char* SPIcommandBytes;
-            switch (msg.type)
+            if(hasMessages(ipcsc))
             {
-            case MSGTYPE_INTERRUPTED:
-                ipcsc->open = 0;
-                closeIPCConnection(ipcsc);
-                free(msg.content);
-                return -1;
-                break;
-
-            case MSGTYPE_CLOSEDCONNECTION:
-                ipcsc->open = 0;
-                closeIPCConnection(ipcsc);
-                free(msg.content);
-                return 0;
-                break;
-
-            case MSGTYPE_SPIANSWER:
-                SPIanswer = cJSON_CreateObject();
-                SPIanswerBytes = NULL;
-                cJSON_AddStringToObject(SPIanswer, "MessageType", "SPIAnswer");
-                cJSON_AddStringToObject(SPIanswer, "SenderID", wscClient.ID);
-                SPIanswerBytes = cJSON_AddArrayToObject(SPIanswer, "Data");
-                for (int i = 0; i < msg.length; i++)
+                Message msg = receiveMessageIPC(ipcsc);
+                printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+                cJSON* SPIanswer;
+                cJSON* SPIanswerBytes;
+                cJSON* SPIcommand;
+                char* SPIcommandBytes;
+                switch (msg.type)
                 {
-                    cJSON_AddNumberToObject(SPIanswerBytes, "", (unsigned char)msg.content[i]);
-                }
-                char* msgJSON = cJSON_Print(SPIanswer);
-                sendMessageWebsocket(wscClient.wsi, msgJSON);
-                free(msgJSON);
-                cJSON_Delete(SPIanswer);
-                break;
+                case IPCMSGTYPE_INTERRUPTED:
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return -1;
+                    break;
 
-            default:
-                break;
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return 0;
+                    break;
+
+                case IPCMSGTYPE_SPIANSWER:
+                    SPIanswer = cJSON_CreateObject();
+                    SPIanswerBytes = NULL;
+                    cJSON_AddStringToObject(SPIanswer, "MessageType", "SPIAnswer");
+                    cJSON_AddStringToObject(SPIanswer, "SenderID", wscClient.ID);
+                    SPIanswerBytes = cJSON_AddArrayToObject(SPIanswer, "Data");
+                    for (int i = 0; i < msg.length; i++)
+                    {
+                        cJSON_AddNumberToObject(SPIanswerBytes, "", (unsigned char)msg.content[i]);
+                    }
+                    char* msgJSON = cJSON_Print(SPIanswer);
+                    sendMessageWebsocket(wscClient.wsi, msgJSON);
+                    free(msgJSON);
+                    cJSON_Delete(SPIanswer);
+                    break;
+
+                default:
+                    break;
+                }   
             }
         }
         else
@@ -123,40 +127,14 @@ static char* spiCommandMsgWS(char* bytes, int length)
 
 int main(int argc, char const *argv[])
 {
-    #ifdef PS
-    wscClient.ID = "PS125BF";
-    #else
-    wscClient.ID = "CU7EA55";
-    #endif
 
-    signal(SIGINT, sigint_handler);
-
-    #ifdef PS
     protectionService = connectToIPCSocket(PROTECTION_SERVICE, messageHandlerIPC);
     if (protectionService == NULL)
         return -1;
-    #endif
-
-    /* Websocket client creation */
-    if(websocketPrepareContext(&wscClient, COMMUNICATION_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessageClient, 0))
-    {
-        return -1;
-    }
 
     int rc;
     char buf[4096];
 
-    char test[3];
-    test[0] = 0x55;
-    test[1] = 0x00;
-    test[2] = 0x00;
-
-    while(!wscClient.connectionEstablished)
-    {
-        sleep(1);
-    }
-
-    #ifndef PS
     while( (rc=read(STDIN_FILENO, buf, sizeof(buf))) > 0)
     {
         char msgContent[rc+1];
@@ -169,13 +147,12 @@ int main(int argc, char const *argv[])
             msgContent[rc-1] = '\0';
         if (!strcmp(msgContent, "close"))
             break;
-        //sendMessageIPC(protectionService, MSGTYPE_SPICOMMAND, test, 3);
-        //sendMessageIPC(protectionService, MSGTYPE_SPICOMMAND, msgContent, strlen(msgContent));
-        spiCommandMsgWS(test, 3);
+        sendMessageIPC(protectionService, IPCMSGTYPE_USERBASEDFAULT, msgContent, strlen(msgContent));
     }  
-    #else
+
+    closeIPCConnection(protectionService);
+
     pthread_join(protectionService->thread, NULL);
-    #endif
 
     //closeIPCConnection(webcamService);
     return 0;

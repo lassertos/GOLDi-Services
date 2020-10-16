@@ -4,8 +4,24 @@
 #include <bcm2835.h>
 #include <stdio.h>
 
+typedef struct spiCommand_s
+{
+    char*   command;
+    char*   data;
+    int     commandLength;
+    int     dataLength;
+    int     answerLength;
+} spiCommand;
+
+typedef struct spiAnswer_s
+{
+    char*   answer;
+    int     answerLength;
+} spiAnswer;
+
+
 int setupSPIInterface();
 void closeSPIInterface();
-void executeSPICommand(unsigned char* command, int length);
+spiAnswer* executeSPICommand(spiCommand command);
 
 #endif

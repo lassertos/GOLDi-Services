@@ -1,4 +1,4 @@
-#include "BooleanExpressionParser.h"
+#include "ExpressionParsers.h"
 
 /* TODO: Dummy object will be deleted in final implementation */
 long long actuatorDummy = 1337;
@@ -303,7 +303,7 @@ void destroyBooleanExpression(BooleanExpression *expression)
 }
 
 /* this function is used to parse a boolean expression from a string with given length */
-BooleanExpression *parseBooleanExpression(char* str, unsigned int length)
+BooleanExpression *parseBooleanExpression(char* str, Variable *variables, unsigned int length)
 {
     queue_t *queue = shuntingyardAlgorithm(str, length);
     BooleanExpression *expression;
@@ -390,7 +390,7 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length)
     return expression;
 }
 
-static void printBooleanExpression(BooleanExpression *expression)
+void printBooleanExpression(BooleanExpression *expression)
 {
     if (expression->type == BoolExprLEAF)
     {
@@ -434,6 +434,44 @@ static void printBooleanExpression(BooleanExpression *expression)
     }
 }
 
+unsigned int evaluateBooleanExpression(BooleanExpression *expression)
+{
+    switch (expression->type)
+    {
+    case BoolExprLEAF:
+        return *expression->result;
+        break;
+
+    case BoolExprAND:
+        return evaluateBooleanExpression(expression->leftside) && evaluateBooleanExpression(expression->rightside);
+        break;
+
+    case BoolExprOR:
+        return evaluateBooleanExpression(expression->leftside) || evaluateBooleanExpression(expression->rightside);
+        break;
+
+    case BoolExprNOT:
+        return !evaluateBooleanExpression(expression->leftside);
+        break;
+
+    case BoolExprEQUAL:
+        return evaluateBooleanExpression(expression->leftside) == evaluateBooleanExpression(expression->rightside);;
+        break;
+
+    case BoolExprGREATER:
+        return evaluateBooleanExpression(expression->leftside) > evaluateBooleanExpression(expression->rightside);;
+        break;
+
+    case BoolExprLOWER:
+        return evaluateBooleanExpression(expression->leftside) < evaluateBooleanExpression(expression->rightside);;
+        break;
+    
+    default:
+        break;
+    }
+
+}
+
 int parseProtection(const char *filename)
 {
     int buffersize = 1024;
@@ -464,8 +502,9 @@ int parseProtection(const char *filename)
             result[currentIndex] = '\0';
             printf("%s\n", result);
             printf("Parsed Expression:\n");
-            BooleanExpression *expression = parseBooleanExpression(str, strlen(str));
+            BooleanExpression *expression = parseBooleanExpression(str, NULL, strlen(str));
             printBooleanExpression(expression);
+            printf("Result of parsed Expression: %d\n", evaluateBooleanExpression(expression));
             destroyBooleanExpression(expression);
         }
     }

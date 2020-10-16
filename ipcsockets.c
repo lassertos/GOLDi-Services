@@ -222,6 +222,16 @@ static char* readFromSocket(IPCSocketConnection* ipcsc, int bytes)
 }
 
 /*
+ *  
+ */ 
+unsigned int hasMessages(IPCSocketConnection* ipcsc)
+{
+    int count;
+    ioctl(ipcsc->fd, FIONREAD, &count);
+    return count;
+}
+
+/*
  *  Receives a SocketMessage from the IPC socket specified by ipcsc.
  */
 static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
@@ -243,9 +253,9 @@ static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
     free(fragmentNumber);
     free(isLastFragment);
 
-    if (result.type == MSGTYPE_INTERRUPTED)
+    if (result.type == IPCMSGTYPE_INTERRUPTED)
     {   
-        result.type = MSGTYPE_INTERRUPTED;
+        result.type = IPCMSGTYPE_INTERRUPTED;
         result.length = 0;
         result.fragmentNumber = 0;
         result.isLastFragment = 1;
@@ -290,8 +300,10 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
 void closeIPCConnection(IPCSocketConnection* ipcsc)
 {
     if (ipcsc->open)
-        sendMessageIPC(ipcsc, MSGTYPE_CLOSEDCONNECTION, NULL, 0);
+        sendMessageIPC(ipcsc, IPCMSGTYPE_CLOSEDCONNECTION, NULL, 0);
     close(ipcsc->fd);
+    ipcsc->open = 0;
+    pthread_join(ipcsc->thread, NULL);
     printf("closed connection to %s\n", ipcsc->socketname);
     free(ipcsc);
 }

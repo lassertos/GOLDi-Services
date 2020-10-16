@@ -11,5 +11,5 @@ WebcamService_LDFLAGS = -g
 ProtectionService_SOURCES = ProtectionService.c ipcsockets.c ipcsockets.h spi.h spi.c
 ProtectionService_LDADD = -lsystemd -lpthread -lbcm2835
 ProtectionService_LDFLAGS = -g
-BEP_SOURCES = BooleanExpressionParser.c stack.c queue.c
+BEP_SOURCES = BooleanExpressionParser.c ExpressionParsers.h stack.c stack.h queue.c queue.h
 BEP_LDFLAGS = -g

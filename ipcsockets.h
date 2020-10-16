@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/ioctl.h>
 #include <stdlib.h>
 #include <systemd/sd-daemon.h>
 #include <string.h>
@@ -29,19 +30,29 @@
  */
 typedef struct 
 {
-    int         fd;
-    char*       socketname;
-    char*       buffer;
-    int         open;
-    pthread_t   thread;
+    int             fd;
+    char*           socketname;
+    char*           buffer;
+    int             open;
+    pthread_t       thread;
 } IPCSocketConnection;
 
 typedef enum 
 {
-    MSGTYPE_INTERRUPTED = -1,
-    MSGTYPE_CLOSEDCONNECTION = 0,
-    MSGTYPE_SPICOMMAND = 1,
-    MSGTYPE_SPIANSWER = 2
+    IPCMSGTYPE_INTERRUPTED              = -1,
+    IPCMSGTYPE_CLOSEDCONNECTION         = 0,
+    IPCMSGTYPE_SPICOMMAND               = 1,
+    IPCMSGTYPE_SPIANSWER                = 2,
+    IPCMSGTYPE_INITEXPERIMENT           = 3,
+    IPCMSGTYPE_STARTEXPERIMENT          = 4,
+    IPCMSGTYPE_STOPEXPERIMENT           = 5,
+    IPCMSGTYPE_ENDEXPERIMENT            = 6,
+    IPCMSGTYPE_SENSORDATA               = 7,
+    IPCMSGTYPE_ACTUATORDATA             = 8,
+    IPCMSGTYPE_DELAYBASEDFAULT          = 9,
+    IPCMSGTYPE_DELAYBASEDFAULTACK       = 10,
+    IPCMSGTYPE_USERBASEDFAULT           = 11,
+    IPCMSGTYPE_INFRASTRUCTUREBASEDFAULT = 12
 } MessageType;
 
 /*
@@ -56,7 +67,7 @@ typedef struct
 
 /*
  *  A message for correct communication over the socket. The additional parameters are important 
- *  for messages that are too long for a single transmission.
+ *  for messages that are too long for a single transmission. TODO: move to c-file
  */
 typedef struct
 {
@@ -75,5 +86,6 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler
 int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* msg, int length);
 Message receiveMessageIPC(IPCSocketConnection* ipcsc);
 void closeIPCConnection(IPCSocketConnection* ipcsc);
+unsigned int hasMessages(IPCSocketConnection* ipcsc);
 
 #endif

@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    int fd = createIPCSocket(PROTECTION_SERVICE);
+    int fd = createIPCSocket(COMMAND_SERVICE);
     IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
     if (communicationService == NULL)
     {
