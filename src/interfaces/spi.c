@@ -23,18 +23,18 @@ void closeSPIInterface()
     bcm2835_spi_end();
 }
 
-spiAnswer* executeSPICommand(spiCommand command)
+spiAnswer executeSPICommand(spiCommand command, char* data)
 {
-    spiAnswer* answer = malloc(sizeof(*answer));
+    spiAnswer answer = {NULL, 0};
     int completeCommandLength = command.commandLength + command.dataLength + command.answerLength;
     char* completeCommand = malloc(completeCommandLength);
     if (completeCommand == NULL)
     {
-        return NULL;
+        return answer;
     }
 
     memcpy(completeCommand, command.command, command.commandLength);
-    memcpy(completeCommand + command.commandLength, command.data, command.dataLength);
+    memcpy(completeCommand + command.commandLength, data, command.dataLength);
     for (int i = 0; i < command.answerLength; i++)
     {
         completeCommand[command.commandLength + command.dataLength + i] = 0;
@@ -52,15 +52,15 @@ spiAnswer* executeSPICommand(spiCommand command)
 
     if (command.answerLength > 0)
     {
-        answer->answer = realloc(completeCommand, command.answerLength);
+        answer.answer = realloc(completeCommand, command.answerLength);
     }
     else 
     {
-        answer->answer = NULL;
+        answer.answer = NULL;
         free(completeCommand);
     }    
 
-    answer->answerLength = command.answerLength;
+    answer.answerLength = command.answerLength;
 
     return answer;
 }

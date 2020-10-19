@@ -12,7 +12,12 @@ char* readFile(char* filename)
     {
         return NULL;
     }
-    fread(string, 1, fsize, f);
+    if (fread(string, 1, fsize, f) != fsize)
+    {
+        printf("An error has occured while trying to read the content of the file!\n");
+        free(string);
+        return NULL;
+    }
     fclose(f);
 
     string[fsize] = 0;

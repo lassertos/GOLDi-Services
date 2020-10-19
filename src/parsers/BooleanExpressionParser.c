@@ -1,8 +1,5 @@
 #include "ExpressionParsers.h"
 
-/* TODO: Dummy object will be deleted in final implementation */
-long long actuatorDummy = 1337;
-
 /* All possible token types used in the shunting-yard-algorithm */
 typedef enum TokenTypes
 {
@@ -75,50 +72,6 @@ static void destroyToken(Token *token)
     free(token);
 }
 
-/* Is called when an operator is found in the given expression TODO: error handling*/
-static int shuntingyardReadOperator(char operator, char *firstOperand, unsigned int *sizeFirstOperand, 
-                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_t *stack)
-{
-    int precedence = getOperatorPrecedence(operator);
-
-    if (precedence < 1)
-    {
-        return 0;
-    }
-
-    if (*sizeFirstOperand)
-    {
-        Token *operandToken = malloc(sizeof(Token));
-        operandToken->type = TokenTypeOperand;
-        operandToken->content = malloc(*sizeFirstOperand);
-        memcpy(operandToken->content, firstOperand, *sizeFirstOperand);
-        operandToken->length = *sizeFirstOperand;
-        operandToken->precedence = 0;
-        queue_enqueue(queue, operandToken);
-    }
-
-    Token *operatorToken = malloc(sizeof(Token));
-    operatorToken->type = TokenTypeOperator;
-    operatorToken->content = malloc(1);
-    operatorToken->content[0] = operator;
-    operatorToken->length = 1;
-    operatorToken->precedence = precedence;
-
-    while ( !stack_empty(stack) && 
-            ((Token*)stack->top->data)->type == TokenTypeOperator &&
-            operatorToken->precedence <= ((Token*)stack->top->data)->precedence )
-    {
-        queue_enqueue(queue, stack_pop(stack));
-    }
-    
-    stack_push(stack, operatorToken);
-
-    *startIndexFirstOperand += *sizeFirstOperand+1;
-    *sizeFirstOperand = 0;
-
-    return 1;
-}
-
 /* can be used to print an overview of the stack */
 static void printTokenStack(stack_t *stack)
 {
@@ -163,6 +116,50 @@ static void removeDoubleNegation(char *str, unsigned int length)
             negationFound = 0;
         }
     }    
+}
+
+/* Is called when an operator is found in the given expression TODO: error handling*/
+static int shuntingyardReadOperator(char operator, char *firstOperand, unsigned int *sizeFirstOperand, 
+                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_t *stack)
+{
+    int precedence = getOperatorPrecedence(operator);
+
+    if (precedence < 1)
+    {
+        return 0;
+    }
+
+    if (*sizeFirstOperand)
+    {
+        Token *operandToken = malloc(sizeof(Token));
+        operandToken->type = TokenTypeOperand;
+        operandToken->content = malloc(*sizeFirstOperand);
+        memcpy(operandToken->content, firstOperand, *sizeFirstOperand);
+        operandToken->length = *sizeFirstOperand;
+        operandToken->precedence = 0;
+        queue_enqueue(queue, operandToken);
+    }
+
+    Token *operatorToken = malloc(sizeof(Token));
+    operatorToken->type = TokenTypeOperator;
+    operatorToken->content = malloc(1);
+    operatorToken->content[0] = operator;
+    operatorToken->length = 1;
+    operatorToken->precedence = precedence;
+
+    while ( !stack_empty(stack) && 
+            ((Token*)stack->top->data)->type == TokenTypeOperator &&
+            operatorToken->precedence <= ((Token*)stack->top->data)->precedence )
+    {
+        queue_enqueue(queue, stack_pop(stack));
+    }
+    
+    stack_push(stack, operatorToken);
+
+    *startIndexFirstOperand += *sizeFirstOperand+1;
+    *sizeFirstOperand = 0;
+
+    return 1;
 }
 
 /* A simple implementation of the shunting-yard-algorithm */
@@ -303,7 +300,7 @@ void destroyBooleanExpression(BooleanExpression *expression)
 }
 
 /* this function is used to parse a boolean expression from a string with given length */
-BooleanExpression *parseBooleanExpression(char* str, Variable *variables, unsigned int length)
+BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variable* variables, unsigned int variablesCount)
 {
     queue_t *queue = shuntingyardAlgorithm(str, length);
     BooleanExpression *expression;
@@ -370,7 +367,17 @@ BooleanExpression *parseBooleanExpression(char* str, Variable *variables, unsign
                     leaf->name = malloc(token->length+1);
                     memcpy(leaf->name, token->content, token->length);
                     leaf->name[token->length] = '\0';
-                    leaf->result = &actuatorDummy;
+                    for (int i = 0; i < variablesCount; i++)
+                    {
+                        if (!strcmp(variables[i].name, leaf->name))
+                        {
+                            leaf->result = (long long*)variables[i].address;
+                        }
+                    }
+                    if (leaf->result == NULL)
+                    {
+                        return NULL;
+                    }
                 }
 
                 stack_push(expressionStack, leaf);
@@ -434,102 +441,81 @@ void printBooleanExpression(BooleanExpression *expression)
     }
 }
 
-unsigned int evaluateBooleanExpression(BooleanExpression *expression)
+int evaluateBooleanExpression(BooleanExpression *expression)
 {
+    int result1 = 0;
+    int result2 = 0;
     switch (expression->type)
     {
     case BoolExprLEAF:
-        return *expression->result;
+        if (expression->result != NULL)
+        {
+            return *expression->result;
+        }
+        return -1;
         break;
 
     case BoolExprAND:
-        return evaluateBooleanExpression(expression->leftside) && evaluateBooleanExpression(expression->rightside);
+        result1 = evaluateBooleanExpression(expression->leftside);
+        result2 = evaluateBooleanExpression(expression->rightside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return result1 && result2;
         break;
 
     case BoolExprOR:
-        return evaluateBooleanExpression(expression->leftside) || evaluateBooleanExpression(expression->rightside);
+        result1 = evaluateBooleanExpression(expression->leftside);
+        result2 = evaluateBooleanExpression(expression->rightside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return result1 || result2;
         break;
 
     case BoolExprNOT:
-        return !evaluateBooleanExpression(expression->leftside);
+        result1 = evaluateBooleanExpression(expression->leftside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return !result1;
         break;
 
     case BoolExprEQUAL:
-        return evaluateBooleanExpression(expression->leftside) == evaluateBooleanExpression(expression->rightside);;
+        result1 = evaluateBooleanExpression(expression->leftside);
+        result2 = evaluateBooleanExpression(expression->rightside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return result1 == result2;
         break;
 
     case BoolExprGREATER:
-        return evaluateBooleanExpression(expression->leftside) > evaluateBooleanExpression(expression->rightside);;
+        result1 = evaluateBooleanExpression(expression->leftside);
+        result2 = evaluateBooleanExpression(expression->rightside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return result1 > result2;
         break;
 
     case BoolExprLOWER:
-        return evaluateBooleanExpression(expression->leftside) < evaluateBooleanExpression(expression->rightside);;
+        result1 = evaluateBooleanExpression(expression->leftside);
+        result2 = evaluateBooleanExpression(expression->rightside);
+        if (result1 == -1 || result2 == -1)
+        {
+            return -1;
+        }
+        return result1 < result2;
         break;
     
     default:
         break;
     }
 
-}
-
-int parseProtection(const char *filename)
-{
-    int buffersize = 1024;
-    FILE *fp;
-    char *str = malloc(1024);
-    fp = fopen(filename, "r");
-    if (fp == NULL)
-    {
-        printf("Protection file could not be opened\n");
-        return 1;
-    }
-    while(fgets(str, buffersize, fp) != NULL)
-    {
-        if (strlen(str) > 1)
-        {
-            printf("Result of Shunting-Yard-Algorithm:\n");
-            queue_t *queue = shuntingyardAlgorithm(str, strlen(str));
-            char result[buffersize];
-            unsigned int currentIndex = 0;
-            while (!queue_empty(queue))
-            {
-                Token *token = (Token*)queue_dequeue(queue);
-                memcpy(result+currentIndex, token->content, token->length);
-                currentIndex += token->length;
-                destroyToken(token);
-            }
-            queue_destroy(queue);
-            result[currentIndex] = '\0';
-            printf("%s\n", result);
-            printf("Parsed Expression:\n");
-            BooleanExpression *expression = parseBooleanExpression(str, NULL, strlen(str));
-            printBooleanExpression(expression);
-            printf("Result of parsed Expression: %d\n", evaluateBooleanExpression(expression));
-            destroyBooleanExpression(expression);
-        }
-    }
-
-    free(str);
-
-    return 0;
-}
-
-
-int main(int argc, char const *argv[])
-{
-    if (argc == 2)
-    {
-        parseProtection(argv[1]);
-    }
-    else if (argc < 2)
-    {
-        printf("Too few arguments: a filename is needed\n");
-        return 1;
-    }
-    else if (argc > 2)
-    {
-        printf("Too many arguments: only one filename is needed\n");
-        return 1;
-    }
-    return 0;
 }

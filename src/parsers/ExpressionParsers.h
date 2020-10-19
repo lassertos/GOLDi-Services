@@ -45,8 +45,8 @@ struct BooleanExpression_s
     unsigned long long *result;
 };
 
-BooleanExpression *parseBooleanExpression(char* str, Variable *variables, unsigned int length);
-unsigned int evaluateBooleanExpression(BooleanExpression *expression);
+BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variable *variables, unsigned int variablesCount);
+int evaluateBooleanExpression(BooleanExpression *expression);
 void printBooleanExpression(BooleanExpression *expression);
 void destroyBooleanExpression(BooleanExpression *expression);
 

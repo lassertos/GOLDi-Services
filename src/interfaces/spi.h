@@ -7,7 +7,6 @@
 typedef struct spiCommand_s
 {
     char*   command;
-    char*   data;
     int     commandLength;
     int     dataLength;
     int     answerLength;
@@ -22,6 +21,6 @@ typedef struct spiAnswer_s
 
 int setupSPIInterface();
 void closeSPIInterface();
-spiAnswer* executeSPICommand(spiCommand command);
+spiAnswer executeSPICommand(spiCommand command, char* data);
 
 #endif
