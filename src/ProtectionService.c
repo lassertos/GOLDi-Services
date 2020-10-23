@@ -3,8 +3,6 @@
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
 
-#define PHYSICAL_SYSTEM
-
 typedef struct
 {
     BooleanExpression*  expression;
@@ -161,20 +159,20 @@ int main(int argc, char const *argv[])
     }*/
     char* filename = "../../../Testfiles/SensorsActuators.json";
     char* filecontent = readFile(filename);
-    JSON* json = JSONParse(filecontent);
-    int sensorCount = JSONGetArraySize(JSONGetObjectItem(json, "Sensors"));
-    Sensor* sensors = parseSensors(filecontent, strlen(filecontent));
+    unsigned int sensorCount = 0;
+    unsigned int actuatorCount = 0;
+    Sensor* sensors = parseSensors(filecontent, strlen(filecontent), &sensorCount);
     for (int i = 0; i < sensorCount; i++)
     {
         printSensorData(sensors[i]);
     }
-    int actuatorCount = JSONGetArraySize(JSONGetObjectItem(json, "Actuators"));
-    Actuator* actuators = parseActuators(filecontent, strlen(filecontent));
+    Actuator* actuators = parseActuators(filecontent, strlen(filecontent), &actuatorCount);
     for (int i = 0; i < actuatorCount; i++)
     {
         printActuatorData(actuators[i]);
     }
-    JSONDelete(json);
+    destroySensors(sensors, sensorCount);
+    destroyActuators(actuators, actuatorCount);
     free(filecontent);
     return 0;
 }

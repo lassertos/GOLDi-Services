@@ -23,6 +23,7 @@ void closeSPIInterface()
     bcm2835_spi_end();
 }
 
+// TODO: look if it needs a revamp
 spiAnswer executeSPICommand(spiCommand command, char* data)
 {
     spiAnswer answer = {NULL, 0};
@@ -35,7 +36,7 @@ spiAnswer executeSPICommand(spiCommand command, char* data)
 
     memcpy(completeCommand, command.command, command.commandLength);
     memcpy(completeCommand + command.commandLength, data, command.dataLength);
-    for (int i = 0; i < command.answerLength; i++)
+    for (int i = 0; i < command.dataLength; i++)
     {
         completeCommand[command.commandLength + command.dataLength + i] = 0;
     }
