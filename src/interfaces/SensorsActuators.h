@@ -6,8 +6,6 @@
 #include "../parsers/json.h"
 #include <stdio.h>
 
-#define EXTENDED_SENSORS_ACTUATORS
-
 typedef enum 
 {
     SensorTypeBinary,
