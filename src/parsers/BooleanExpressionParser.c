@@ -72,6 +72,27 @@ static void destroyToken(Token *token)
     free(token);
 }
 
+/* can be used to print an overview of the queue */
+static void printTokenQueue(queue_t* queue)
+{
+    printf("Current queue:\n");
+    if (queue_empty(queue))
+    {
+        return;
+    }
+    struct queue_node_s *current = queue->front;
+    Token *token = (Token*)current->data;
+    while (token != NULL)
+    {
+        printf("Type: %d, Content: %.*s, Length: %d, Precedence: %d\n", token->type, token->length, token->content, token->length, token->precedence);
+        if (current->next != NULL)
+            current = current->next;
+        else
+            break;
+        token = (Token*)current->data;
+    }
+}
+
 /* can be used to print an overview of the stack */
 static void printTokenStack(stack_t *stack)
 {
@@ -260,6 +281,16 @@ static queue_t *shuntingyardAlgorithm(char *str, unsigned int length)
                 currentValue[i-startIndexCurrentValue] = str[i];
                 sizeCurrentValue++;
         }
+        if (i == length-1 && sizeCurrentValue > 0)
+        {
+            Token *token = malloc(sizeof(Token));
+            token->type = TokenTypeOperand;
+            token->content = malloc(sizeCurrentValue);
+            memcpy(token->content, currentValue, sizeCurrentValue);
+            token->length = sizeCurrentValue;
+            token->precedence = 0;
+            queue_enqueue(queue, token);
+        }
 	}
     while (!stack_empty(stack))
     {
@@ -272,7 +303,6 @@ static queue_t *shuntingyardAlgorithm(char *str, unsigned int length)
     }
 
     stack_destroy(stack);
-
     return queue;
 }
 
@@ -399,6 +429,11 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
 
 void printBooleanExpression(BooleanExpression *expression)
 {
+    if (expression == NULL)
+    {
+        printf("The BooleanExpression points to NULL\n");
+        return;
+    }
     if (expression->type == BoolExprLEAF)
     {
         if (expression->name != NULL)

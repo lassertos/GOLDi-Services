@@ -9,8 +9,9 @@ Queue = utils/queue.h utils/queue.c
 JSON = parsers/json.h parsers/json.c
 SensorsActuators = interfaces/SensorsActuators.h interfaces/SensorsActuators.c
 ExpressionParsers = parsers/ExpressionParsers.h parsers/tinyexpr.h parsers/tinyexpr.c parsers/BooleanExpressionParser.c parsers/MathematicalExpression.c
+StateMachine = parsers/StateMachine.h parsers/StateMachine.c
 
-bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService
+bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService InitializationService
 
 CommunicationService_SOURCES = CommunicationService.c $(IPCSockets) $(WebSockets) $(Utils)
 CommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
@@ -27,3 +28,12 @@ WebcamService_LDFLAGS = -g
 ProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators)
 ProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
 ProtectionService_LDFLAGS = -g
+
+ProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators)
+ProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
+ProtectionService_LDFLAGS = -g
+ProtectionService_CFLAGS = -DEXTENDED_SENSORS_ACTUATORS
+
+InitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue)
+InitializationService_LDADD = -lcjson -lm
+InitializationService_LDFLAGS = -g
