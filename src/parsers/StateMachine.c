@@ -123,11 +123,29 @@ int updateStateMachine(StateMachine* stateMachine)
         }
         else
         {
-            return 0;
+            return 1;
         }
     }
 
-    return 1;
+    return 0;
+}
+
+int executeStateMachine(StateMachineExecution* execution)
+{
+    while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
+    {
+        if (execution->stopped)
+        {
+            return 0;
+        }
+        if (updateStateMachine(execution->stateMachine))
+        {
+            execution->stopped = 1;
+            return 1;
+        }
+    }
+    execution->stopped = 1;
+    return 0;
 }
 
 void resetStateMachine(StateMachine* stateMachine)

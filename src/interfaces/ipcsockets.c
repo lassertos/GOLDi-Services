@@ -1,25 +1,17 @@
 #include "ipcsockets.h"
 
-static char* serializeInt(int num)
+/*
+ *  A message for correct communication over the socket. The additional parameters are important 
+ *  for messages that are too long for a single transmission.
+ */
+typedef struct
 {
-    char* result = malloc(4);
-    result[0] = num >> 24;
-    result[1] = num >> 16;
-    result[2] = num >> 8;
-    result[3] = num;
-    return result;
-}
-
-static int deserializeInt(unsigned char* str)
-{
-    if (str == NULL)
-        return -1;
-    int result = str[0];
-    result = (result << 8) + str[1];
-    result = (result << 8) + str[2];
-    result = (result << 8) + str[3];
-    return result;
-}
+    MessageType type;
+    int         length;
+    int         fragmentNumber;
+    int         isLastFragment;
+    char*       content;
+} SocketMessage;
 
 /*
  *  Either fetches the FileDescriptor given by systemd socket activation or creates
@@ -98,6 +90,8 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
     	return NULL;
     }
 
+    pthread_mutex_init(&connection->mutex, NULL);
+
     if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
         fprintf(stderr, "Error creating IPC socket thread\n");
         return NULL;
@@ -125,6 +119,8 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler
         perror("accept error");
         return NULL;
     }
+
+    pthread_mutex_init(&connection->mutex, NULL);
 
     if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
         fprintf(stderr, "Error creating IPC socket thread\n");
@@ -155,6 +151,7 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* ms
     messageLength[fragments-1] = length % (MAX_MESSAGE_SIZE - MESSAGE_HEADER_SIZE);
     completeLength[fragments-1] = messageLength[fragments-1] + MESSAGE_HEADER_SIZE;
 
+    pthread_mutex_lock(&ipcsc->mutex);
     for (int i = 0; i < fragments; i++)
     {
         // prepare buffer for sending the message 
@@ -189,9 +186,11 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* ms
                 return -1;
             }
         }
+        
         //printf("TYPE:    %d\nLENGTH:  %d\nCONTENT: %s\n", messageType, messageLength, msg);
         free(ipcsc->buffer);
     }
+    pthread_mutex_unlock(&ipcsc->mutex);
 
     return 0;
 }
@@ -203,6 +202,7 @@ static char* readFromSocket(IPCSocketConnection* ipcsc, int bytes)
 {
     int rc;
     char* result = malloc(bytes);
+    
     if ((rc = read(ipcsc->fd, result, bytes)) > 0)
     {
         if (rc == bytes)
@@ -236,6 +236,7 @@ unsigned int hasMessages(IPCSocketConnection* ipcsc)
  */
 static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
 {
+    pthread_mutex_lock(&ipcsc->mutex);
     SocketMessage result;
 
     char* type = readFromSocket(ipcsc, sizeof(int));
@@ -264,6 +265,7 @@ static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
     }
 
     result.content = readFromSocket(ipcsc, result.length);
+    pthread_mutex_unlock(&ipcsc->mutex);
     return result;
 }
 
@@ -299,11 +301,15 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
  */
 void closeIPCConnection(IPCSocketConnection* ipcsc)
 {
+    pthread_mutex_lock(&ipcsc->mutex);
     if (ipcsc->open)
+    {
         sendMessageIPC(ipcsc, IPCMSGTYPE_CLOSEDCONNECTION, NULL, 0);
-    close(ipcsc->fd);
-    ipcsc->open = 0;
-    pthread_join(ipcsc->thread, NULL);
-    printf("closed connection to %s\n", ipcsc->socketname);
-    free(ipcsc);
+        close(ipcsc->fd);
+        ipcsc->open = 0;
+        pthread_join(ipcsc->thread, NULL);
+        printf("closed connection to %s\n", ipcsc->socketname);
+        free(ipcsc);
+    }
+    pthread_mutex_unlock(&ipcsc->mutex);
 }

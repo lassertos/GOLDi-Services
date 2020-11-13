@@ -143,59 +143,56 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 {
 	websocketConnection *wsc;
 	if (user != NULL)
-		wsc = (websocketConnection *)user;
+		wsc = (websocketConnection*)user;
 	else
 		wsc = (websocketConnection*)lws_context_user(lws_get_context(wsi));
 
 	char* message;
 
-	switch (reason) {
+	switch (reason) 
+	{
+		case LWS_CALLBACK_PROTOCOL_INIT:
+			break;
 
-	case LWS_CALLBACK_PROTOCOL_INIT:
-		break;
+		case LWS_CALLBACK_ESTABLISHED:
+			break;
 
-	case LWS_CALLBACK_ESTABLISHED:
-		break;
+		case LWS_CALLBACK_CLOSED:
+			break;
 
-	case LWS_CALLBACK_CLOSED:
-		break;
+		case LWS_CALLBACK_SERVER_WRITEABLE:
+			break;
 
-	case LWS_CALLBACK_SERVER_WRITEABLE:
-		break;
+		case LWS_CALLBACK_RECEIVE:
+			message = malloc(len + 1);
+			memcpy(message, (char*)in, len);
+			message[len] = '\0';
+			wsc->messageHandler(wsi, message);
+			break;
 
-	case LWS_CALLBACK_RECEIVE:
-		message = malloc(len + 1);
-		memcpy(message, (char*)in, len);
-		message[len] = '\0';
-		wsc->messageHandler(wsi, message);
-		break;
+		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+			lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
+				in ? (char *)in : "(null)");
+			goto do_retry;
+			break;
 
-	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-		lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
-			 in ? (char *)in : "(null)");
-		goto do_retry;
-		break;
+		case LWS_CALLBACK_CLIENT_RECEIVE:
+			message = malloc(len + 1);
+			memcpy(message, (char*)in, len);
+			message[len] = '\0';
+			wsc->messageHandler(wsi, message);
+			break;
 
-	case LWS_CALLBACK_CLIENT_RECEIVE:
-		message = malloc(len + 1);
-		memcpy(message, (char*)in, len);
-		message[len] = '\0';
-		wsc->messageHandler(wsi, message);
-		break;
+		case LWS_CALLBACK_CLIENT_ESTABLISHED:
+			wsc->connectionEstablished = 1;
+			lwsl_user("%s: established\n", __func__);
+			break;
 
-	case LWS_CALLBACK_CLIENT_ESTABLISHED:
-		wsc->connectionEstablished = 1;
-		char* connectMsg = connectMessage(wsc->ID);
-        sendMessageWebsocket(wsi, connectMsg);
-		free(connectMsg);
-		lwsl_user("%s: established\n", __func__);
-		break;
+		case LWS_CALLBACK_CLIENT_CLOSED:
+			goto do_retry;
 
-	case LWS_CALLBACK_CLIENT_CLOSED:
-		goto do_retry;
-
-	default:
-		break;
+		default:
+			break;
 	}
 
 	//return lws_callback_http_dummy(wsi, reason, user, in, len);
@@ -224,33 +221,39 @@ do_retry:
 int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason,
 		                    void *user, void *in, size_t len)
 {
-	websocketConnection *wsc = (websocketConnection *)user;
+	websocketConnection *wsc;
+	if (user != NULL)
+		wsc = (websocketConnection*)user;
+	else
+		wsc = (websocketConnection*)lws_context_user(lws_get_context(wsi));
+
 	char* message;
 
-	switch (reason) {
+	switch (reason) 
+	{
+		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+			lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
+				in ? (char *)in : "(null)");
+			goto do_retry;
+			break;
 
-	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-		lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
-			 in ? (char *)in : "(null)");
-		goto do_retry;
-		break;
+		case LWS_CALLBACK_CLIENT_RECEIVE:
+			message = malloc(len + 1);
+			memcpy(message, (char*)in, len);
+			message[len] = '\0';
+			wsc->messageHandler(wsi, message);
+			break;
 
-	case LWS_CALLBACK_CLIENT_RECEIVE:
-		message = malloc(len + 1);
-		memcpy(message, (char*)in, len);
-		message[len] = '\0';
-		wsc->messageHandler(wsi, message);
-		break;
+		case LWS_CALLBACK_CLIENT_ESTABLISHED:
+			wsc->connectionEstablished = 1;
+			lwsl_user("%s: established\n", __func__);
+			break;
 
-	case LWS_CALLBACK_CLIENT_ESTABLISHED:
-		lwsl_user("%s: established\n", __func__);
-		break;
+		case LWS_CALLBACK_CLIENT_CLOSED:
+			goto do_retry;
 
-	case LWS_CALLBACK_CLIENT_CLOSED:
-		goto do_retry;
-
-	default:
-		break;
+		default:
+			break;
 	}
 
 	//return lws_callback_http_dummy(wsi, reason, user, in, len);

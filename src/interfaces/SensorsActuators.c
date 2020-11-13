@@ -5,12 +5,7 @@
 Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
 {
     Sensor* sensors;
-    JSON* json = JSONParseWithLength(str, length);
-    if (json == NULL)
-    {
-        return NULL;
-    }
-    const JSON* jsonSensors = JSONGetObjectItem(json, "Sensors");
+    JSON* jsonSensors = JSONParseWithLength(str, length);
     if (jsonSensors == NULL)
     {
         return NULL;
@@ -30,9 +25,8 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
         const JSON* sensorCommand = JSONGetObjectItem(jsonSensor, "SensorCommand");
         const JSON* sensorMathExpression = JSONGetObjectItem(jsonSensor, "SensorMathExpression");
         const JSON* sensorIsVirtual = JSONGetObjectItem(jsonSensor, "SensorIsVirtual");
-        const JSON* sensorValueBitWidth = JSONGetObjectItem(jsonSensor, "SensorValueBitWidth");
         if (sensorID == NULL || sensorType == NULL || sensorCommand == NULL || 
-            sensorIsVirtual == NULL || sensorValueBitWidth == NULL || sensorMathExpression == NULL)
+            sensorIsVirtual == NULL || sensorMathExpression == NULL)
         {
             printf("sth could not be found!\n");
             return NULL;
@@ -92,22 +86,16 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
         {
             return NULL;
         }
-        sensors[currentIndex].valueBitWidth = sensorValueBitWidth->valueint;
         currentIndex++;
     }
-    JSONDelete(json);
+    JSONDelete(jsonSensors);
     return sensors;
 }
 
 Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
 {
     Actuator* actuators;
-    JSON* json = JSONParseWithLength(str, length);
-    if (json == NULL)
-    {
-        return NULL;
-    }
-    const JSON* jsonActuators = JSONGetObjectItem(json, "Actuators");
+    JSON* jsonActuators = JSONParseWithLength(str, length);
     if (jsonActuators == NULL)
     {
         return NULL;
@@ -126,9 +114,8 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         const JSON* actuatorType = JSONGetObjectItem(jsonActuator, "ActuatorType");
         const JSON* actuatorCommand = JSONGetObjectItem(jsonActuator, "ActuatorCommand");
         const JSON* actuatorMathExpression = JSONGetObjectItem(jsonActuator, "ActuatorMathExpression");
-        const JSON* actuatorValueBitWidth = JSONGetObjectItem(jsonActuator, "ActuatorValueBitWidth");
         if (actuatorID == NULL || actuatorType == NULL || actuatorCommand == NULL || 
-            actuatorValueBitWidth == NULL || actuatorMathExpression == NULL)
+            actuatorMathExpression == NULL)
         {
             return NULL;
         }
@@ -178,10 +165,9 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         }
         byteIndex = 0;
 
-        actuators[currentIndex].valueBitWidth = actuatorValueBitWidth->valueint;
         currentIndex++;
     }
-    JSONDelete(json);
+    JSONDelete(jsonActuators);
     return actuators;
 }
 
@@ -222,7 +208,6 @@ void printSensorData(Sensor sensor)
     {
         printf("SensorIsVirtual:        %s", "false\n");
     }
-    printf("SensorValueBitWidth:    %d\n", sensor.valueBitWidth);
     printf("\n");
 }
 
@@ -261,7 +246,6 @@ void printActuatorData(Actuator actuator)
     {
         printf("ActuatorMathExpression: %s\n", "false");
     }
-    printf("ActuatorValueBitWidth:  %d\n", actuator.valueBitWidth);
     printf("\n");
 }
 
@@ -306,17 +290,35 @@ char* ActuatorValueToSPIData(Actuator* actuator)
     return result;
 }
 
+void SPIAnswerToSensorValue(Sensor* sensor, spiAnswer answer)
+{
+    long long value = 0;
+
+    for (int i = 0; i < answer.answerLength; i++)
+    {
+        if (value != 0)
+        {
+            value = value << 8;
+        }
+        value += answer.answer[i];
+    }
+
+    sensor->value = value;
+    sensor->valueDouble = (double)value;
+
+    if (sensor->mathExpr != NULL)
+    {
+        sensor->valueDouble = evaluateMathematicalExpression(sensor->mathExpr);
+        sensor->value = (long long)sensor->valueDouble;
+    }
+}
+
 #else
 
 Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
 {
     Sensor* sensors;
-    JSON* json = JSONParseWithLength(str, length);
-    if (json == NULL)
-    {
-        return NULL;
-    }
-    const JSON* jsonSensors = JSONGetObjectItem(json, "Sensors");
+    JSON* jsonSensors = JSONParseWithLength(str, length);
     if (jsonSensors == NULL)
     {
         return NULL;
@@ -333,8 +335,7 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
     {
         const JSON* sensorID = JSONGetObjectItem(jsonSensor, "SensorID");
         const JSON* sensorType = JSONGetObjectItem(jsonSensor, "SensorType");
-        const JSON* sensorValueBitWidth = JSONGetObjectItem(jsonSensor, "SensorValueBitWidth");
-        if (sensorID == NULL || sensorType == NULL || sensorValueBitWidth == NULL)
+        if (sensorID == NULL || sensorType == NULL)
         {
             printf("sth could not be found!\n");
             return NULL;
@@ -360,22 +361,16 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
         }
 
         sensors[currentIndex].value = 0;
-        sensors[currentIndex].valueBitWidth = sensorValueBitWidth->valueint;
         currentIndex++;
     }
-    JSONDelete(json);
+    JSONDelete(jsonSensors);
     return sensors;
 }
 
 Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
 {
     Actuator* actuators;
-    JSON* json = JSONParseWithLength(str, length);
-    if (json == NULL)
-    {
-        return NULL;
-    }
-    const JSON* jsonActuators = JSONGetObjectItem(json, "Actuators");
+    JSON* jsonActuators = JSONParseWithLength(str, length);
     if (jsonActuators == NULL)
     {
         return NULL;
@@ -393,8 +388,7 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         const JSON* actuatorID = JSONGetObjectItem(jsonActuator, "ActuatorID");
         const JSON* actuatorType = JSONGetObjectItem(jsonActuator, "ActuatorType");
         const JSON* actuatorCommand = JSONGetObjectItem(jsonActuator, "ActuatorCommand");
-        const JSON* actuatorValueBitWidth = JSONGetObjectItem(jsonActuator, "ActuatorValueBitWidth");
-        if (actuatorID == NULL || actuatorType == NULL || actuatorCommand == NULL || actuatorValueBitWidth == NULL)
+        if (actuatorID == NULL || actuatorType == NULL || actuatorCommand == NULL)
         {
             return NULL;
         }
@@ -420,10 +414,9 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
 
         actuators[currentIndex].value = (long long)JSONGetNumberValue(JSONGetObjectItem(actuatorCommand, "StopValue"));
         actuators[currentIndex].stopValue = (long long)JSONGetNumberValue(JSONGetObjectItem(actuatorCommand, "StopValue"));
-        actuators[currentIndex].valueBitWidth = actuatorValueBitWidth->valueint;
         currentIndex++;
     }
-    JSONDelete(json);
+    JSONDelete(jsonActuators);
     return actuators;
 }
 
@@ -442,7 +435,6 @@ void printSensorData(Sensor sensor)
             printf("SensorType:             %s", "protocol\n");
     }
     printf("SensorValue:            %lld\n", sensor.value);
-    printf("SensorValueBitWidth:    %d\n", sensor.valueBitWidth);
     printf("\n");
 }
 
@@ -462,7 +454,6 @@ void printActuatorData(Actuator actuator)
     }
     printf("StopValue:              %lld\n", actuator.stopValue);
     printf("ActuatorValue:          %lld\n", actuator.value);
-    printf("ActuatorValueBitWidth:  %d\n", actuator.valueBitWidth);
     printf("\n");
 }
 
@@ -514,7 +505,87 @@ Actuator* getActuatorWithID(Actuator* actuators, char* id, int actuatorcount)
     return NULL;
 }
 
-long long SensorSPIDataToValue(Sensor* sensor)
+SensorDataPacket* parseSensorDataPackets(char* str, int length, unsigned int* packetCount)
 {
+    SensorDataPacket* sensors;
+    JSON* jsonSensors = JSONParseWithLength(str, length);
+    if (jsonSensors == NULL)
+    {
+        return NULL;
+    }
+    *packetCount = JSONGetArraySize(jsonSensors);
+    sensors = malloc(sizeof(*sensors)*(*packetCount));
+    if (sensors == NULL)
+    {
+        return NULL;
+    }
+    const JSON* jsonSensor = NULL;
+    int currentIndex = 0;
+    JSONArrayForEach(jsonSensor, jsonSensors)
+    {
+        const JSON* sensorID = JSONGetObjectItem(jsonSensor, "SensorID");
+        if (sensorID == NULL)
+        {
+            printf("sth could not be found!\n");
+            return NULL;
+        }
+        
+        sensors[currentIndex].sensorID = malloc(strlen(sensorID->valuestring)+1);
+        memcpy(sensors[currentIndex].sensorID, sensorID->valuestring, strlen(sensorID->valuestring)+1);
 
+        sensors[currentIndex].value = JSONGetObjectItem(jsonSensors, "SensorValue")->valueint;
+        currentIndex++;
+    }
+    JSONDelete(jsonSensors);
+    return sensors;
+}
+
+ActuatorDataPacket* parseActuatorDataPackets(char* str, int length, unsigned int* packetCount)
+{
+    ActuatorDataPacket* actuators;
+    JSON* jsonActuators = JSONParseWithLength(str, length);
+    if (jsonActuators == NULL)
+    {
+        return NULL;
+    }
+    *packetCount = JSONGetArraySize(jsonActuators);
+    actuators = malloc(sizeof(*actuators)*(*packetCount));
+    if (actuators == NULL)
+    {
+        return NULL;
+    }
+    const JSON* jsonActuator = NULL;
+    int currentIndex = 0;
+    JSONArrayForEach(jsonActuator, jsonActuators)
+    {
+        const JSON* actuatorID = JSONGetObjectItem(jsonActuator, "ActuatorID");
+        if (actuatorID == NULL)
+        {
+            return NULL;
+        }
+        
+        actuators[currentIndex].actuatorID = malloc(strlen(actuatorID->valuestring)+1);
+        memcpy(actuators[currentIndex].actuatorID, actuatorID->valuestring, strlen(actuatorID->valuestring)+1);
+
+        actuators[currentIndex].value = JSONGetObjectItem(jsonActuators, "ActuatorValue")->valueint;
+        currentIndex++;
+    }
+    JSONDelete(jsonActuators);
+    return actuators;
+}
+
+JSON* SensorDataPacketToJSON(SensorDataPacket packet)
+{
+    JSON* dataPacket = JSONCreateObject();
+    JSONAddStringToObject(dataPacket, "SensorID", packet.sensorID);
+    JSONAddNumberToObject(dataPacket, "SensorValue", packet.value);
+    return dataPacket;
+}
+
+JSON* ActuatorDataPacketToJSON(ActuatorDataPacket packet)
+{
+    JSON* dataPacket = JSONCreateObject();
+    JSONAddStringToObject(dataPacket, "ActuatorID", packet.actuatorID);
+    JSONAddNumberToObject(dataPacket, "ActuatorValue", packet.value);
+    return dataPacket;
 }
