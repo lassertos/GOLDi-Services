@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
+#include "../utils/utils.h"
 
 #define COMMUNICATION_SERVICE "GOLDiCommunicationService"
 #define PROGRAMMING_SERVICE "GOLDiProgrammingService"
@@ -34,25 +35,44 @@ typedef struct
     char*           socketname;
     char*           buffer;
     int             open;
+    pthread_mutex_t mutex;
     pthread_t       thread;
 } IPCSocketConnection;
 
+//TODO maybe change some of the msgtypes / or merge them
 typedef enum 
 {
-    IPCMSGTYPE_INTERRUPTED              = -1,
-    IPCMSGTYPE_CLOSEDCONNECTION         = 0,
-    IPCMSGTYPE_SPICOMMAND               = 1,
-    IPCMSGTYPE_SPIANSWER                = 2,
-    IPCMSGTYPE_INITEXPERIMENT           = 3,
-    IPCMSGTYPE_STARTEXPERIMENT          = 4,
-    IPCMSGTYPE_STOPEXPERIMENT           = 5,
-    IPCMSGTYPE_ENDEXPERIMENT            = 6,
-    IPCMSGTYPE_SENSORDATA               = 7,
-    IPCMSGTYPE_ACTUATORDATA             = 8,
-    IPCMSGTYPE_DELAYBASEDFAULT          = 9,
-    IPCMSGTYPE_DELAYBASEDFAULTACK       = 10,
-    IPCMSGTYPE_USERBASEDFAULT           = 11,
-    IPCMSGTYPE_INFRASTRUCTUREBASEDFAULT = 12
+    IPCMSGTYPE_INTERRUPTED                          = -1,
+    IPCMSGTYPE_CLOSEDCONNECTION                     = 0,
+    IPCMSGTYPE_SPICOMMAND                           = 1,
+    IPCMSGTYPE_SPIANSWER                            = 2,
+    IPCMSGTYPE_INITCOMMANDSERVICE                   = 3,
+    IPCMSGTYPE_STARTEXPERIMENT                      = 4,
+    IPCMSGTYPE_STOPEXPERIMENT                       = 5,
+    IPCMSGTYPE_ENDEXPERIMENT                        = 6,
+    IPCMSGTYPE_SENSORDATA                           = 7,
+    IPCMSGTYPE_ACTUATORDATA                         = 8,
+    IPCMSGTYPE_DELAYBASEDFAULT                      = 9,
+    IPCMSGTYPE_DELAYBASEDFAULTACK                   = 10,
+    IPCMSGTYPE_DELAYBASEDERROR                      = 11,
+    IPCMSGTYPE_USERBASEDERROR                       = 12,
+    IPCMSGTYPE_INFRASTRUCTUREBASEDERROR             = 13,
+    IPCMSGTYPE_INITPROTECTIONSERVICE                = 16,
+    IPCMSGTYPE_STARTINITIALIZATION                  = 18,
+    IPCMSGTYPE_INITIALIZATIONFINISHED               = 19,
+    IPCMSGTYPE_RUNPHYSICALSYSTEM                    = 20,
+    IPCMSGTYPE_STOPPHYSICALSYSTEM                   = 21,
+    IPCMSGTYPE_PROGRAMCONTROLUNIT                   = 22,
+    IPCMSGTYPE_PROGRAMFPGA                          = 23,
+    IPCMSGTYPE_PROGRAMMINGFINISHED                  = 24,
+    IPCMSGTYPE_SETUSERVARIABLE                      = 25,
+    IPCMSGTYPE_INITPROGRAMMINGSERVICE               = 26,
+    IPCMSGTYPE_STOPINITIALIZATION                   = 27,
+    IPCMSGTYPE_INITINITIALIZATION                   = 28,
+    IPCMSGTYPE_INITPROTECTIONFINISHED               = 29,
+    IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED     = 30,
+    IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED       = 31,
+    IPCMSGTYPE_INITCOMMANDSERVICEFINISHED           = 32
 } MessageType;
 
 /*
@@ -64,19 +84,6 @@ typedef struct
     int             length;
     char*           content;
 } Message;
-
-/*
- *  A message for correct communication over the socket. The additional parameters are important 
- *  for messages that are too long for a single transmission. TODO: move to c-file
- */
-typedef struct
-{
-    MessageType type;
-    int         length;
-    int         fragmentNumber;
-    int         isLastFragment;
-    char*       content;
-} SocketMessage;
 
 typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
 

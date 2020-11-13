@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <pthread.h>
 
+//TODO change to real values
 #define GOLDi_SERVERADDRESS "192.168.179.24"
 #define GOLDi_SERVERPORT 8082
 
@@ -27,9 +28,48 @@ typedef struct
     msgHandler                          messageHandler;
     int                                 isServer;
     char*                               ID;
-    int                                 connectionEstablished;
+    volatile int                        connectionEstablished;
     pthread_t                           thread;
 } websocketConnection;
+
+enum WebsocketCommands 
+{
+    WebsocketCommandNack                    = 0,
+    WebsocketCommandAck                     = 1,
+
+    WebsocketCommandDeviceData              = 2,
+    WebsocketCommandDeviceRegistered        = 3,
+
+    WebsocketCommandExperimentInit          = 4,
+    WebsocketCommandExperimentInitAck       = 5,
+    WebsocketCommandExperimentClose         = 6,
+    WebsocketCommandExperimentCloseAck      = 7,
+
+    WebsocketCommandExperimentData          = 8,
+
+    WebsocketCommandDirectConnectionInit    = 15,
+    WebsocketCommandDirectConnectionAck     = 16,
+    WebsocketCommandDirectConnectionFail    = 17,
+
+    WebsocketCommandRunPS                   = 20,
+    WebsocketCommandStopPS                  = 21,
+    WebsocketCommandSensorData              = 22,
+    WebsocketCommandActuatorData            = 23,
+    WebsocketCommandLight                   = 24,
+    WebsocketCommandUserVariable            = 25,
+
+    WebsocketCommandInitPS                  = 30,
+    WebsocketCommandInitPSAck               = 31,
+    WebsocketCommandProgramCU               = 32,
+    WebsocketCommandProgramCUAck            = 33,
+    WebsocketCommandResetCU                 = 34,
+
+    WebsocketCommandDelayFault              = 40,
+    WebsocketCommandDelayFaultAck           = 41,
+    WebsocketCommandDelayError              = 42,
+    WebsocketCommandUserError               = 43,
+    WebsocketCommandInfrastructureError     = 44
+};
 
 int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, msgHandler messageHandler, int isServer);
 int callback_communication(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);

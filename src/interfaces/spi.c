@@ -21,6 +21,7 @@ int setupSPIInterface()
 void closeSPIInterface()
 {
     bcm2835_spi_end();
+    bcm2835_close();
 }
 
 // TODO: look if it needs a revamp
