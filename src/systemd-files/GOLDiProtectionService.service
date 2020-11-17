@@ -1,0 +1,8 @@
+[Unit]
+Description = The GOLDi Protection Service
+
+[Service]
+ExecStart = GOLDiProtectionService
+
+[Install]
+WantedBy = multi-user.target

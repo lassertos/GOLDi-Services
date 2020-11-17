@@ -1,0 +1,8 @@
+[Unit]
+Description = The GOLDi Initialization Service
+
+[Service]
+ExecStart = GOLDiInitializationService
+
+[Install]
+WantedBy = multi-user.target

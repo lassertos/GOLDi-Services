@@ -1,0 +1,8 @@
+[Unit]
+Description = The GOLDi Communication Service
+
+[Service]
+ExecStart = GOLDiCommunicationService
+
+[Install]
+WantedBy = multi-user.target

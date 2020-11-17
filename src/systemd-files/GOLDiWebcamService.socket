@@ -1,0 +1,8 @@
+[Unit]
+Description = Socket for the GOLDi Webcam Service
+
+[Socket]
+ListenStream = @GOLDiWebcamService
+
+[Install]
+WantedBy = sockets.target

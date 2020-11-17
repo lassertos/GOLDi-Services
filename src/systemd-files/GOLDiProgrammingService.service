@@ -1,0 +1,8 @@
+[Unit]
+Description = The GOLDi Programming Service
+
+[Service]
+ExecStart = GOLDiProgrammingService
+
+[Install]
+WantedBy = multi-user.target
