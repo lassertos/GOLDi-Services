@@ -21,9 +21,6 @@ bin_PROGRAMS = CommunicationService ProgrammingService CommandService
 CommunicationService_SOURCES = CommunicationServiceCU.c 
 
 GOLDiServicesLocal_DATA = templates/DeviceDataCUTemplate.json
-install-data-hook:
-	cd /data/GOLDiServices ; \
-	mv DeviceDataCUTemplate.json DeviceData.json
 else
 bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService InitializationService
 CommunicationService_SOURCES = CommunicationServicePS.c 
@@ -32,9 +29,6 @@ GOLDiServicesExperimentsdir = $(GOLDiServicesdir)/experiments
 GOLDiServices3AxisPortaldir = $(GOLDiServicesExperimentsdir)/3AxisPortal
 GOLDiServices3AxisPortal_DATA = experiments/3AxisPortal/ExperimentData.json experiments/3AxisPortal/FPGA.svf
 GOLDiServicesLocal_DATA = templates/DeviceDataPSTemplate.json
-install-data-hook:
-	cd /data/GOLDiServices ; \
-	mv DeviceDataPSTemplate.json DeviceData.json
 endif
 
 CommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
