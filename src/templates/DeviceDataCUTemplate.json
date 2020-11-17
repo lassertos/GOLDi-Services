@@ -1,0 +1,22 @@
+{
+    "DeviceID":678,
+    "DeviceType":"CU",
+	"Institution":
+	{
+		"Name":"Technische Universität Ilmenau",
+		"Faculty":"Computer Science",
+		"Division":"Integrated Communication Systems Group"
+	},
+	"Maintainter":
+	{
+		"Name":"Max Mustermann",
+		"Email":"max@mustermann.de",
+		"Telephone":"+49123456789"
+	},
+	"Network":
+	{
+		"Subnet":"GoldiLab1",
+		"LocalIP":"123.45.67.89"
+    },
+    "ExperimentType":"MicroController"
+}

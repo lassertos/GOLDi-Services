@@ -7,6 +7,7 @@
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
 
+/* all possible error types */
 typedef enum
 {
     DELAY_ERROR,
@@ -14,6 +15,14 @@ typedef enum
     INFRASTRUCTURE_ERROR
 } ErrorType;
 
+/*
+ *  Protectionrules can be checked to test if faults/errors have occured 
+ *  expression      -   this is evaluated during the main loop, an error has occurred 
+ *                      when the expression evaluates to 1
+ *  errorType       -   the type of the error
+ *  errorMessage    -   a string containing a descriptive error Message
+ *  errorCode       -   the internal code of the error
+ */
 typedef struct
 {
     BooleanExpression*  expression;
@@ -22,12 +31,19 @@ typedef struct
     int                 errorCode;
 } Protectionrule;
 
+/* a struct containing all the Protectionrules and their count */
 struct 
 {
     Protectionrule* rules;
     int             count;
 } Protectionrules;
 
+/*
+ *  DelayBasedFault struct to keep track of a specific delay based fault
+ *  rule        -   the associated Protectionrule which is checked continously and at the end
+ *  thread      -   the associated thread where the DelayBasedFault is handled in
+ *  isActive    -   indicates whether the thread is still active
+ */
 typedef struct
 {
     Protectionrule* rule;
@@ -35,21 +51,36 @@ typedef struct
     unsigned int    isActive:1;
 } DelayBasedFault;
 
+/* a struct containing all the possible DelayBasedFaults and their maximum count */
 struct 
 {
     DelayBasedFault*    faults;
-    unsigned int        maxAmount;
+    unsigned int        maxCount;
 } delayBasedFaults;
 
-static IPCSocketConnection* communicationService;
-static Sensor* sensors;
-static Actuator* actuators;
-static Actuator* incomingActuators;
-static unsigned int sensorCount;
-static unsigned int actuatorCount;
-static unsigned int stoppedPS = 1;
-pthread_mutex_t mutexSPI;
+/* global variables needed for execution */
+static IPCSocketConnection* communicationService;   // the IPC-socket to the Communication Service
+static Sensor* sensors;                             // here all of our sensor data is saved
+static Actuator* actuators;                         // here all of our actuator data is saved
+static Actuator* incomingActuators;                 // this is used for buffering new actuator data
+static unsigned int sensorCount;                    // the amount of sensors
+static unsigned int actuatorCount;                  // the amount of actuators
+static unsigned int stoppedPS = 1;                  // indicates whether the physical system has been stopped
+pthread_mutex_t mutexSPI;                           // used to coordinate spi access
 
+/*
+ * the sigint handler, can also be used for cleanup after execution 
+ * sig - the signal the program received, can be ignored for our purposes
+ */
+static void sigint_handler(int sig)
+{
+    exit(0);
+}
+
+/*
+ *  can be used to print out the information of a Protectionrule
+ *  rule    -   the Protectionrule to be printed 
+ */
 void printProtectionRule(Protectionrule rule)
 {
     printf("Expression: ");
@@ -58,6 +89,10 @@ void printProtectionRule(Protectionrule rule)
     printf("ErrorCode: %d\n", rule.errorCode);
 }
 
+/*
+ *  used to parse the Protectionrules given by the Communication Service as a JSON-formatted string
+ *  protectionString    -   the JSON-formatted string containing all Protectionrules 
+ */
 int parseProtectionRules(char *protectionString)
 {
     JSON* protectionJSON = JSONParse(protectionString);
@@ -118,7 +153,7 @@ int parseProtectionRules(char *protectionString)
         }
         else
         {
-            //TODO handle incorrect syntax of protectionRule
+            //TODO error handling: handle incorrect syntax of protectionRule
         }
 
         Protectionrules.rules[currentIndex].errorMessage = malloc(strlen(errorMessageJSON->valuestring)+1);
@@ -141,24 +176,30 @@ int parseProtectionRules(char *protectionString)
     return 0;
 }
 
+/* used to start the physical system */
 static void startPhysicalSystem(void)
 {
     //TODO maybe add check for protectionrules
     stoppedPS = 0;
 }
 
+/* used to stop the physical system */
 static void stopPhysicalSystem(void)
 {
-    pthread_mutex_lock(&mutexSPI);
     stoppedPS = 1;
     for (int i = 0; i < actuatorCount; i++)
     {
-        spiAnswer answer = executeSPICommand(actuators[i].command, actuators[i].stopData);
-        free(answer.answer);
+        spiAnswer answer = executeSPICommand(actuators[i].command, actuators[i].stopData, &mutexSPI);
+        free(answer.content);
     }
-    pthread_mutex_unlock(&mutexSPI);
 }
 
+/*
+ *  the handler for DelayBasedFaults, it checks periodically for 10 seconds if the fault has resolved 
+ *  and stops if so. If the fault has not been resolved after 10 seconds an error message will be send
+ *  to the Communication Service
+ *  fault   -   the DelayBasedFault to be handled 
+ */
 static void handleDelayBasedFault(DelayBasedFault* fault)
 {
     for (int i = 0; i < 100; i++)
@@ -180,7 +221,11 @@ static void handleDelayBasedFault(DelayBasedFault* fault)
     free(delayBasedError);
 }
 
-static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
+/*
+ *  a message handler for the IPC-sockets
+ *  ipcsc   -   the IPCSocketConnection to be handled
+ */
+static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
     while(1)
     {
@@ -243,15 +288,15 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
                             free(result);
                             break;
                         }
-                        delayBasedFaults.maxAmount = 0;
+                        delayBasedFaults.maxCount = 0;
                         for (int i = 0; i < Protectionrules.count; i++)
                         {
                             if (Protectionrules.rules[i].errorType == DELAY_ERROR)
                             {
-                                delayBasedFaults.maxAmount++;
+                                delayBasedFaults.maxCount++;
                             }
                         }
-                        delayBasedFaults.faults = malloc(sizeof(*delayBasedFaults.faults)*delayBasedFaults.maxAmount);
+                        delayBasedFaults.faults = malloc(sizeof(*delayBasedFaults.faults)*delayBasedFaults.maxCount);
                         unsigned int currentFaultIndex = 0;
                         for (int i = 0; i < Protectionrules.count; i++)
                         {
@@ -278,9 +323,9 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
                     {
                         //TODO maybe rename variables as these are still the names of the old system and maybe change their content too
                         JSON* msgJSON = JSONParse(msg.content);
-                        unsigned int userVariable = JSONGetObjectItem(msgJSON, "Variable"); //the index of the virtual sensor (looking only at the virtual sensors)
-                        long long value = JSONGetObjectItem(msgJSON, "State");              //the new value of the virtual sensor
-                        unsigned int virtualIndex = 0;                                      //keeps track of the number of virtual sensors we have already seen
+                        unsigned int userVariable = JSONGetObjectItem(msgJSON, "Variable")->valueint;   //the index of the virtual sensor (looking only at the virtual sensors)
+                        long long value = JSONGetObjectItem(msgJSON, "State")->valueint;                //the new value of the virtual sensor
+                        unsigned int virtualIndex = 0;                                                  //keeps track of the number of virtual sensors we have already seen
                         for (int i = 0; i < sensorCount; i++)
                         {
                             if (sensors[i].isVirtual && virtualIndex == userVariable)
@@ -331,6 +376,29 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
                         break;
                     }
 
+                    case IPCMSGTYPE_EXPERIMENTINIT:
+                    {
+                        JSON* msgJSON = JSONParse(msg.content);
+                        JSON* packetsJSON = JSONCreateArray();
+                        SensorDataPacket* packets = malloc(sizeof(*packets)*sensorCount);
+
+                        for (int i = 0; i < sensorCount; i++)
+                        {
+                            packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].value};
+                            JSONAddItemToArray(packetsJSON, SensorDataPacketToJSON(packets[i]));
+                        }
+                        
+                        free(packets);
+                        JSONAddItemToObject(msgJSON, "SensorData", packetsJSON);
+                        
+                        char* message = JSONPrint(msgJSON);
+                        sendMessageIPC(communicationService, IPCMSGTYPE_EXPERIMENTINIT, message, strlen(message));
+                        free(message);
+
+                        JSONDelete(msgJSON);
+                        break;
+                    }
+
                     case IPCMSGTYPE_INTERRUPTED:
                     {
                         ipcsc->open = 0;
@@ -366,10 +434,11 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 
 int main(int argc, char const *argv[])
 {
+    /* initialize the mutex and all needed sockets */
     pthread_mutex_init(&mutexSPI, NULL);
 
     int fd = createIPCSocket(PROTECTION_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
+    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
         printf("Connection to Communication Service could not be established!\n");
@@ -391,13 +460,11 @@ int main(int argc, char const *argv[])
             for (int i = 0; i < sensorCount; i++)
             {
                 oldSensorValues[i] = sensors[i].value;
-                pthread_mutex_lock(&mutexSPI);
-                spiAnswer answer = executeSPICommand(sensors[i].command, NULL);
-                pthread_mutex_unlock(&mutexSPI);
+                spiAnswer answer = executeSPICommand(sensors[i].command, NULL, &mutexSPI);
                 SPIAnswerToSensorValue(&sensors[i], answer);
-                if(answer.answerLength > 0)
+                if(answer.length > 0)
                 {
-                    free(answer.answer);
+                    free(answer.content);
                 }
                 if (oldSensorValues[i] != sensors[i].value)
                 {
@@ -420,7 +487,7 @@ int main(int argc, char const *argv[])
             /* Check the Protection rules */
             for (int i = 0; i < Protectionrules.count; i++)
             {
-                if (evaluateBooleanExpression(&Protectionrules.rules[i]))
+                if (evaluateBooleanExpression(Protectionrules.rules[i].expression))
                 {
                     if (!stoppedPS)
                     {
@@ -430,7 +497,7 @@ int main(int argc, char const *argv[])
                     {
                         case DELAY_ERROR:
                         {
-                            for (int j = 0; j < delayBasedFaults.maxAmount; j++)
+                            for (int j = 0; j < delayBasedFaults.maxCount; j++)
                             {
                                 if (delayBasedFaults.faults[j].rule->errorCode == Protectionrules.rules[i].errorCode)
                                 {
@@ -440,7 +507,7 @@ int main(int argc, char const *argv[])
                                     }
                                     else
                                     {
-                                        pthread_create(delayBasedFaults.faults[j].thread, NULL, &handleDelayBasedFault, &delayBasedFaults.faults[j]);
+                                        pthread_create(&delayBasedFaults.faults[j].thread, NULL, &handleDelayBasedFault, &delayBasedFaults.faults[j]);
                                         pthread_detach(delayBasedFaults.faults[j].thread);
                                     }
                                 }
@@ -497,17 +564,14 @@ int main(int argc, char const *argv[])
             for (int i = 0; i < actuatorCount; i++)
             {
                 spiAnswer answer;
-                pthread_mutex_lock(&mutexSPI);
                 if (stoppedPS)
                 {
-                    pthread_mutex_unlock(&mutexSPI);
                     break;
                 }
                 char * data = ActuatorValueToSPIData(&actuators[i]);
-                answer = executeSPICommand(actuators[i].command, data);
-                pthread_mutex_unlock(&mutexSPI);
+                answer = executeSPICommand(actuators[i].command, data, &mutexSPI);
                 free(data);
-                free(answer.answer);
+                free(answer.content);
             }
         }
     }

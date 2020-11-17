@@ -1,9 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-char* readFile(char* filename);
-char* encodeBase64(unsigned char* string);
-char* decodeBase64(char* string);
+char* readFile(char* filename, unsigned int* filesize);
+char* encodeBase64(char* string, unsigned int lengthString);
+char* decodeBase64(char* string, unsigned int* length);
 char* serializeInt(int num);
 int deserializeInt(unsigned char* str);
 

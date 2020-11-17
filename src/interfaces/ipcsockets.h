@@ -39,7 +39,7 @@ typedef struct
     pthread_t       thread;
 } IPCSocketConnection;
 
-//TODO maybe change some of the msgtypes / or merge them
+//TODO maybe change some of the msgtypes / or merge them and cleanup
 typedef enum 
 {
     IPCMSGTYPE_INTERRUPTED                          = -1,
@@ -72,7 +72,11 @@ typedef enum
     IPCMSGTYPE_INITPROTECTIONFINISHED               = 29,
     IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED     = 30,
     IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED       = 31,
-    IPCMSGTYPE_INITCOMMANDSERVICEFINISHED           = 32
+    IPCMSGTYPE_INITCOMMANDSERVICEFINISHED           = 32,
+    IPCMSGTYPE_INITWEBCAMSERVICE                    = 33,
+    IPCMSGTYPE_INITWEBCAMSERVICEFINISHED            = 34,
+    IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED           = 35,
+    IPCMSGTYPE_EXPERIMENTINIT                       = 36
 } MessageType;
 
 /*

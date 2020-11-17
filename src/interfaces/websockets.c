@@ -102,7 +102,7 @@ int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols proto
 		lws_sul_schedule(wsc->context, 0, &wsc->sul, websocketConnectClient, 1);
 	}
 
-	if(pthread_create(&wsc->thread, NULL, handleWebsocket, wsc)) {
+	if(pthread_create(&wsc->thread, NULL, &handleWebsocket, wsc)) {
         fprintf(stderr, "Error creating Websocket thread\n");
         return 1;
     }

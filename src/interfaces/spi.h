@@ -3,24 +3,24 @@
 
 #include <bcm2835.h>
 #include <stdio.h>
+#include <pthread.h>
 
 typedef struct spiCommand_s
 {
-    char*   command;
-    int     commandLength;
-    int     dataLength;
-    int     answerLength;
+    char            command;
+    unsigned int    dataLength;
+    unsigned int    answerLength;
 } spiCommand;
 
 typedef struct spiAnswer_s
 {
-    char*   answer;
-    int     answerLength;
+    char*           content;
+    unsigned int    length;
 } spiAnswer;
 
 
 int setupSPIInterface();
 void closeSPIInterface();
-spiAnswer executeSPICommand(spiCommand command, char* data);
+spiAnswer executeSPICommand(spiCommand command, char* data, pthread_mutex_t* mutex);
 
 #endif

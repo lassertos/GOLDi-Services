@@ -4,12 +4,17 @@
 
 #include "utils.h"
 
-char* readFile(char* filename)
+char* readFile(char* filename, unsigned int* filesize)
 {
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
+
+    if (filesize != NULL)
+    {
+        *filesize = fsize;
+    }
 
     char *string = malloc(fsize + 1);
     if (string == NULL)
@@ -32,55 +37,54 @@ char* readFile(char* filename)
 static const unsigned char base64Table[65] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-char* encodeBase64(unsigned char* string)
+char* encodeBase64(char* string, unsigned int lengthString)
 {
-    if (string != NULL)
+    if (lengthString < 1)
     {
-        if (strlen(string) < 1)
-        {
-            return "";
-        } 
-    }
+        return "";
+    } 
 
-    unsigned int lengthString = strlen(string);
     unsigned int lengthPaddedString = lengthString + 3 - (lengthString % 3);
     unsigned int lengthBase64String = (lengthPaddedString / 3) * 4;
 
-    unsigned char* paddedString = malloc(lengthPaddedString + 1);
-    strncpy(paddedString, string, lengthString);
+    char* paddedString = malloc(lengthPaddedString + 1);
+    memcpy(paddedString, string, lengthString);
 
     for (int i = lengthString; i <= lengthPaddedString; i++)
     {
         paddedString[i] = 0;
     }
 
-    unsigned char* base64String = malloc(lengthBase64String + 1);
+    char* base64String = malloc(lengthBase64String + 1);
     base64String[lengthBase64String] = 0;
 
     for (int i = 0; i < lengthString; i = i+3)
     {
+        //printf("input: %x %x %x\n", paddedString[i], paddedString[i+1], paddedString[i+2]);
         int j = (i / 3) * 4;
 
-        base64String[j] = paddedString[i] >> 2;
+        unsigned int byte0 = (unsigned char)paddedString[i];
+        unsigned int byte1 = (unsigned char)paddedString[i+1];
+        unsigned int byte2 = (unsigned char)paddedString[i+2];
 
-        base64String[j+1] = (paddedString[i] << 6) >> 2;
-        base64String[j+1] += paddedString[i+1] >> 4;
+        unsigned int bytes = (byte0 << 16) + (byte1 << 8) + byte2;
 
-        base64String[j+2] = (paddedString[i+1] << 4) >> 2;
-        base64String[j+2] += paddedString[i+2] >> 6;
+        //printf("output: %x %x %x %x\n", base64String[j], base64String[j+1], base64String[j+2], base64String[j+3]);
 
-        base64String[j+3] = (paddedString[i+2] << 2) >> 2;
-
-        base64String[j] = base64Table[base64String[j] & 0x3F];
-        base64String[j+1] = base64Table[base64String[j+1] & 0x3F];
-        base64String[j+2] = base64Table[base64String[j+2] & 0x3F];
-        base64String[j+3] = base64Table[base64String[j+3] & 0x3F];
+        base64String[j] = base64Table[(bytes >> 18) & 0x3F];
+        base64String[j+1] = base64Table[(bytes >> 12) & 0x3F];
+        base64String[j+2] = base64Table[(bytes >> 6) & 0x3F];
+        base64String[j+3] = base64Table[bytes & 0x3F];
     }
 
     for (int i = lengthBase64String - (lengthPaddedString - lengthString); i < lengthBase64String; i++)
     {
         base64String[i] = '=';
     }
+
+    base64String[lengthBase64String] = '\0';
+    
+    free(paddedString);
     
     return base64String;
 }
@@ -97,7 +101,7 @@ static char getBase64Value(char character)
     return -1;
 }
 
-char* decodeBase64(char* string)
+char* decodeBase64(char* string, unsigned int* length)
 {
     if (string != NULL)
     {
@@ -118,6 +122,7 @@ char* decodeBase64(char* string)
     }
     
     unsigned int lengthDecodedString = (lengthString / 4) * 3 - equalsCount;
+    *length = lengthDecodedString;
     char* decodedString = malloc(lengthDecodedString+1);
 
     for (int i = 0; i < lengthString; i = i+4)

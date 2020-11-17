@@ -1,15 +1,29 @@
+#define PROGRAMMINGFILE_MICROCONTROLLER "/tmp/GOLDiServices/ProgrammingService/MicroController.hex"
+#define PROGRAMMINGFILE_PLD "/tmp/GOLDiServices/ProgrammingService/PLD.pof"
+#define PROGRAMMINGFILE_GENERIC "/tmp/GOLDiServices/ProgrammingService/programmingfile"
+
 #include "interfaces/ipcsockets.h"
 #include "programmer/goldi-programmer.h"
 
 IPCSocketConnection* communicationService;
 
+/* all possible Control Unit types */
 enum ControlUnitTypes
 {
     CUTYPE_MICROCONTROLLER,
     CUTYPE_PLD
 } cuType;
 
-static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
+/*
+ * the sigint handler, can also be used for cleanup after execution 
+ * sig - the signal the program received, can be ignored for our purposes
+ */
+static void sigint_handler(int sig)
+{
+    exit(0);
+}
+
+static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
     while(1)
     {
@@ -33,13 +47,29 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
                         switch(cuType)
                         {
                             case CUTYPE_MICROCONTROLLER:
-                                programControlUnitMicrocontroller("MicroController.hex");
+                            {
+                                rename(PROGRAMMINGFILE_GENERIC, PROGRAMMINGFILE_MICROCONTROLLER);
+                                int result = programControlUnitMicrocontroller(PROGRAMMINGFILE_MICROCONTROLLER);
+                                char* resultString = serializeInt(result);
+                                sendMessageIPC(communicationService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
+                                free(resultString);
                                 break;
+                            }
+
                             case CUTYPE_PLD:
-                                programFPGA("PLD.pof");
+                            {
+                                rename(PROGRAMMINGFILE_GENERIC, PROGRAMMINGFILE_PLD);
+                                int result = programFPGA(PROGRAMMINGFILE_PLD);
+                                char* resultString = serializeInt(result);
+                                sendMessageIPC(communicationService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
+                                free(resultString);
                                 break;
+                            }
+
                             default:
+                            {
                                 break;
+                            }
                         }
                         break;
                     }
@@ -99,7 +129,7 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(PROGRAMMING_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
+    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
         return -1;
     
