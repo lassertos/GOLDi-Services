@@ -1,0 +1,8 @@
+[Unit]
+Description = Socket for the GOLDi Initialization Service
+
+[Socket]
+ListenStream = @GOLDiInitializationService
+
+[Install]
+WantedBy = sockets.target

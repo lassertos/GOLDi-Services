@@ -1,0 +1,8 @@
+[Unit]
+Description = The GOLDi Webcam Service
+
+[Service]
+ExecStart = GOLDiWebcamService
+
+[Install]
+WantedBy = multi-user.target
