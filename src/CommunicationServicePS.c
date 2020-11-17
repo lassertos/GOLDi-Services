@@ -1,22 +1,37 @@
+#define EXPERIMENTDATA_FILENAME "ExperimentData.json"
+#define FPGASVF_FILENAME "FPGA.svf"
+
 #include "interfaces/ipcsockets.h"
 #include "interfaces/websockets.h"
 #include "utils/utils.h"
 #include "parsers/json.h"
+#include "logging/log.h"
 
-// TODO maybe add explanation for variables
 /* global variables needed for execution */
-static websocketConnection wscLabserver;
-static websocketConnection wscControlUnit;
-static IPCSocketConnection* protectionService;
-static IPCSocketConnection* initializationService;
-static IPCSocketConnection* webcamService;
-static unsigned int deviceID;
-static JSON* deviceDataCompactJSON;
-static char* deviceDataCompact;
-static unsigned int initializingPS = 0;
-static unsigned int SenderID;
-static unsigned int forwardSensorData = 0;
+static websocketConnection wscLabserver;            // the websocket to the Labserver
+static websocketConnection wscControlUnit;          // the websocket to the Control Unit
+static IPCSocketConnection* protectionService;      // the IPC-socket to the Protection Service
+static IPCSocketConnection* initializationService;  // the IPC-socket to the Initialization Service
+static IPCSocketConnection* webcamService;          // the IPC-socket to the Webcam Service
+static IPCSocketConnection* programmingService;     // the IPC-socket to the Programming Service
+static unsigned int deviceID;                       // here we save the DeviceID
+static JSON* deviceDataCompactJSON;                 // here a compact version of the DeviceData is kept in JSON-format
+static char* deviceDataCompact;                     // here a compact version of the DeviceData is kept as a string
+static unsigned int initializingPS = 0;             // indicates whether the physical system is currently being initialized
 
+/* struct containing result of service initializations */
+struct 
+{
+    int protectionService;
+    int initializationService;
+    int webcamService;
+} ServiceInitializations;
+
+
+/*
+ * the sigint handler, can also be used for cleanup after execution 
+ * sig - the signal the program received, can be ignored for our purposes
+ */
 static void sigint_handler(int sig)
 {
 	wscLabserver.interrupted = 1;
@@ -45,19 +60,17 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         case WebsocketCommandDeviceRegistered:
         {
             //TODO think about what should happen here, maybe just log?
+            log_info("device has been registered successfully");
             break;
         }
 
         /* start sending data and send ExperimentInitAck */
         case WebsocketCommandExperimentInit:
         {
-            //TODO if partner is real then send experiment data with current sensor values
-            //TODONOTE add ActuatorData with value null to experiment data
-            //look at CommunicationServiceCU to see how experimentInitAck is handled there
-            int experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID");
+            int experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valueint;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
             JSON* experimentInitAck = JSONCreateObject();
-            JSONAddNumberToObject(experimentInitAck, "SenderID", SenderID);
+            JSONAddNumberToObject(experimentInitAck, "SenderID", deviceID);
             JSONAddNumberToObject(experimentInitAck, "Command", WebsocketCommandExperimentInitAck);
             JSONAddNumberToObject(experimentInitAck, "ExperimentID", experimentID);
             if (virtualPartner == 0)
@@ -68,8 +81,10 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             {
                 JSONAddTrueToObject(experimentInitAck, "virtualPartner");
             }
+            JSONAddItemReferenceToObject(experimentInitAck, "Experiment", JSONGetObjectItem(deviceDataCompactJSON, "Experiment"));
+            JSONAddNullToObject(experimentInitAck, "ActuatorData");
             char* msgString = JSONPrint(experimentInitAck);
-            sendMessageWebsocket(wsi, msgString);
+            sendMessageIPC(protectionService, IPCMSGTYPE_EXPERIMENTINIT, msgString, strlen(msgString));
             free(msgString);
             JSONDelete(experimentInitAck);
             break;
@@ -179,10 +194,31 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
+                    case IPCMSGTYPE_SENSORDATA:
+                    {
+                        JSON* msgJSON = JSONParse(msg.content);
+
+                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandSensorData);
+
+                        char* message = JSONPrint(msgJSON);
+                        if (wscControlUnit.connectionEstablished && !wscControlUnit.interrupted)
+                        {
+                            sendMessageWebsocket(wscControlUnit.wsi, message);
+                        }
+                        else
+                        {
+                            sendMessageWebsocket(wscLabserver.wsi, message);
+                        }
+
+                        free(message);
+                        JSONDelete(msgJSON);
+                    }
+
                     case IPCMSGTYPE_DELAYBASEDFAULT:
                     {
                         JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", SenderID);
+                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
                         JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayFault);
                         char* message = JSONPrint(msgJSON);
                         sendMessageWebsocket(wscLabserver.wsi, message);
@@ -198,7 +234,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     case IPCMSGTYPE_DELAYBASEDERROR:
                     {
                         JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", SenderID);
+                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
                         JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayError);
                         char* message = JSONPrint(msgJSON);
                         sendMessageWebsocket(wscLabserver.wsi, message);
@@ -210,7 +246,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     case IPCMSGTYPE_USERBASEDERROR:
                     {
                         JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", SenderID);
+                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
                         JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandUserError);
                         char* message = JSONPrint(msgJSON);
                         sendMessageWebsocket(wscLabserver.wsi, message);
@@ -222,7 +258,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     case IPCMSGTYPE_INFRASTRUCTUREBASEDERROR:
                     {
                         JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", SenderID);
+                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
                         JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandInfrastructureError);
                         char* message = JSONPrint(msgJSON);
                         sendMessageWebsocket(wscLabserver.wsi, message);
@@ -236,11 +272,11 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
-                            //TODO add graceful shutdown or retry
+                            ServiceInitializations.protectionService = -1;
                         }
                         else
                         {
-                            //TODO maybe add initfinished variable
+                            ServiceInitializations.protectionService = 1;
                         }
                         break;
                     }
@@ -250,11 +286,11 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
-                            //TODO add graceful shutdown or retry
+                            ServiceInitializations.initializationService = -1;
                         }
                         else
                         {
-                            //TODO maybe add initfinished variable
+                            ServiceInitializations.initializationService = 1;
                         }
                         break;
                     }
@@ -273,17 +309,23 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         break;
                     }
 
-                    case IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED:
+                    case IPCMSGTYPE_INITWEBCAMSERVICEFINISHED:
                     {
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
-                            //TODO add graceful shutdown or retry
+                            ServiceInitializations.webcamService = -1;
                         }
                         else
                         {
-                            //TODO maybe add initfinished variable
+                            ServiceInitializations.webcamService = 1;
                         }
+                        break;
+                    }
+
+                    case IPCMSGTYPE_EXPERIMENTINIT:
+                    {
+                        sendMessageWebsocket(wscLabserver.wsi, msg.content);
                         break;
                     }
 
@@ -332,36 +374,70 @@ int main(int argc, char const *argv[])
 
     while(!wscLabserver.connectionEstablished);
 
+    ServiceInitializations.protectionService = 0;
     protectionService = connectToIPCSocket(PROTECTION_SERVICE, messageHandlerIPC);
     if (protectionService == NULL)
+    {
         return -1;
+    }
 
+    ServiceInitializations.initializationService = 0;
     initializationService = connectToIPCSocket(INITIALIZATION_SERVICE, messageHandlerIPC);
     if (initializationService == NULL)
+    {
         return -1;
+    }
 
+    ServiceInitializations.webcamService = 0;
     webcamService = connectToIPCSocket(WEBCAM_SERVICE, messageHandlerIPC);
     if (webcamService == NULL)
+    {
         return -1;
+    }
+
+    programmingService = connectToIPCSocket(PROGRAMMING_SERVICE, messageHandlerIPC);
+    if (programmingService == NULL)
+    {
+        return -1;
+    }
 
     /* read experiment configuration file and initialize all services */
-    //char* deviceConfigContent = readFile("/data/GOLDiServices/DeviceData.json");
-    char* deviceConfigContent = readFile("../../../Testfiles/ExperimentConfig.json");
-
+    //TODO change paths, add NULL and error handling
+    char* deviceConfigContent = readFile("/data/GOLDiServices/DeviceData.json", NULL);
     JSON* jsonDeviceConfig = JSONParse(deviceConfigContent);
-    JSON* jsonExperimentConfig = JSONGetObjectItem(jsonDeviceConfig, "Experiment");
+    JSON* jsonDeviceID = JSONGetObjectItem(jsonDeviceConfig, "DeviceID");
+
+    /* find experiment config file and read content */
+    char* experimentType = JSONGetObjectItem(jsonDeviceConfig, "ExperimentType")->valuestring;
+    char* experimentsPath = "/etc/GOLDiServices/experiments/";
+    char* completeConfigPath = malloc(strlen(experimentType) + strlen(experimentsPath) + strlen(EXPERIMENTDATA_FILENAME) + 2);
+    strcpy(completeConfigPath, experimentsPath);
+    strcat(completeConfigPath, experimentType);
+    strcat(completeConfigPath, "/");
+    strcat(completeConfigPath, EXPERIMENTDATA_FILENAME);
+    char* experimentConfigContent = readFile(completeConfigPath, NULL);
+    free(completeConfigPath);
+
+    /* find fpga programming file and read content */ 
+    char* fpgaSVFPath = malloc(strlen(experimentType) + strlen(experimentsPath) + strlen(FPGASVF_FILENAME) + 2);
+    strcpy(fpgaSVFPath, experimentsPath);
+    strcat(fpgaSVFPath, experimentType);
+    strcat(fpgaSVFPath, "/");
+    strcat(fpgaSVFPath, FPGASVF_FILENAME);
+    char* fpgaSVFContent = readFile(fpgaSVFPath, NULL);
+    free(fpgaSVFPath);
+
+    JSON* jsonExperimentConfig = JSONParse(experimentConfigContent);
+    free(experimentConfigContent);
     JSON* jsonSensors = JSONGetObjectItem(jsonExperimentConfig, "Sensors");
     JSON* jsonActuators = JSONGetObjectItem(jsonExperimentConfig, "Actuators");
     JSON* jsonProtection = JSONGetObjectItem(jsonExperimentConfig, "ProtectionRules");
     JSON* jsonInitializers = JSONGetObjectItem(jsonExperimentConfig, "Initializers");
 
-    /**
-     * char* experimentName = JSONGetObjectItem(jsonExperimentConfig, "ExperimentType");
-     * char* experimentsPath = "/etc/GOLDiServices/experiments/"
-     * char* conmpleteConfigPath = malloc(strlen(experimentName) + strlen(experimentsPath) + 1);
-     * strcat(completeConfigPath, experimentName, experimentsPath);
-     * char* experimentConfigContent = readFile(completeConfigPath);
-     * */
+    /* variables needed for the initialization of the Webcam Service*/
+    JSON* jsonCamera = JSONGetObjectItem(jsonDeviceConfig, "Camera");
+    JSON* jsonCameraType = JSONGetObjectItem(jsonCamera, "Type");
+    JSON* jsonCameraAddress = JSONGetObjectItem(jsonCamera, "Address");
 
     /* before continuing to parse try to create serversocket for wsc with Control Unit */
     char* ipAdress = JSONGetObjectItem(JSONGetObjectItem(jsonDeviceConfig, "Network"), "LocalIP")->valuestring;
@@ -370,6 +446,11 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
+    /* program the fpga */
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
+    free(fpgaSVFContent);
+
+    /* initialize Protection Service */
     JSON* jsonProtectionInitMsg = JSONCreateObject();
     JSONAddItemReferenceToObject(jsonProtectionInitMsg, "Sensors", jsonSensors);
     JSONAddItemReferenceToObject(jsonProtectionInitMsg, "Actuators", jsonActuators);
@@ -380,6 +461,17 @@ int main(int argc, char const *argv[])
     JSONDelete(jsonProtectionInitMsg);
     free(stringProtectionInitMsg);
 
+    while(!(ServiceInitializations.protectionService > 0))
+    {
+        if (ServiceInitializations.protectionService == -1)
+        {
+            //TODO error handling
+            log_error("the Protection Service could not be initialized correctly");
+            return -1;
+        }
+    }
+
+    /* initialize Initialization Service */
     JSON* jsonInitializationInitMsg = JSONCreateObject();
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Sensors", jsonSensors);
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Actuators", jsonActuators);
@@ -390,6 +482,38 @@ int main(int argc, char const *argv[])
     JSONDelete(jsonInitializationInitMsg);
     free(stringInitializationInitMsg);
 
+    while(!(ServiceInitializations.initializationService > 0))
+    {
+        if (ServiceInitializations.initializationService == -1)
+        {
+            //TODO error handling
+            log_error("the Initialization Service could not be initialized correctly");
+            return -1;
+        }
+    }
+
+    /* initialize Webcam Service */
+    JSON* jsonWebcamInitMsg = JSONCreateObject();
+    JSONAddItemReferenceToObject(jsonWebcamInitMsg, "Type", jsonCameraType);
+    JSONAddItemReferenceToObject(jsonWebcamInitMsg, "Address", jsonCameraAddress);
+    JSONAddItemReferenceToObject(jsonWebcamInitMsg, "ID", jsonDeviceID);
+    char* stringWebcamInitMsg = JSONPrint(jsonWebcamInitMsg);
+    sendMessageIPC(webcamService, IPCMSGTYPE_INITWEBCAMSERVICE, stringWebcamInitMsg, strlen(stringWebcamInitMsg));
+
+    JSONDelete(jsonWebcamInitMsg);
+    free(stringWebcamInitMsg);
+
+    while(!(ServiceInitializations.webcamService > 0))
+    {
+        if (ServiceInitializations.webcamService == -1)
+        {
+            //TODO error handling
+            log_error("the Webcam Service could not be initialized correctly");
+            return -1;
+        }
+    }
+
+    /* prepare experiment data for Labserver and Control Unit */
     JSON* jsonSensor = NULL;
     JSONArrayForEach(jsonSensor, jsonSensors)
     {
@@ -412,18 +536,23 @@ int main(int argc, char const *argv[])
         initializerStrings[initializerIndex] = jsonInitializer->string;
         initializerIndex++;
     }
-
-    JSON* jsonInitializersNew = JSONCreateStringArray(initializerStrings, initializerIndex);
+    JSON* jsonInitializersNew = JSONCreateStringArray((const char **)initializerStrings, initializerIndex);
     JSONDeleteItemFromObject(jsonExperimentConfig, "Initializer");
     JSONAddItemToObject(jsonExperimentConfig, "Initializer", jsonInitializersNew);
 
+    JSONDeleteItemFromObject(jsonDeviceConfig, "ExperimentType");
+    JSONAddTrueToObject(jsonExperimentConfig, "PS");
+    JSONAddItemToObject(jsonDeviceConfig, "Experiment", jsonExperimentConfig);
+
+    /* save compact device data and send it to the Labserver */
     deviceDataCompact = JSONPrint(jsonDeviceConfig);
     deviceDataCompactJSON = JSONParse(deviceDataCompact);
-    SenderID = JSONGetObjectItem(deviceDataCompactJSON, "DeviceID")->valueint;
+    deviceID = jsonDeviceID->valueint;
     JSONAddNumberToObject(jsonDeviceConfig, "Command", WebsocketCommandDeviceData);
     char* deviceDataCommand = JSONPrint(jsonDeviceConfig);
     sendMessageWebsocket(wscLabserver.wsi, deviceDataCommand);
 
+    /* cleanup */
     JSONDelete(jsonDeviceConfig);
     free(deviceConfigContent);
     free(deviceDataCommand);

@@ -32,51 +32,41 @@ typedef struct
     long long value;
 } ActuatorDataPacket;
 
-#ifdef EXTENDED_SENSORS_ACTUATORS
 typedef struct
 {
     char*                   sensorID;
     SensorType              type;
-    spiCommand              command;
     long long               value;
+    unsigned char           pinMapping;
+    #ifdef EXTENDED_SENSORS_ACTUATORS
+    spiCommand              command;
     double                  valueDouble;
     MathematicalExpression* mathExpr;
     unsigned int            isVirtual;
+    #endif
 } Sensor;
 
 typedef struct
 {
     char*                   actuatorID;
     ActuatorType            type;
+    long long               value;
+    unsigned char           pinMapping;
+    #ifdef EXTENDED_SENSORS_ACTUATORS
     spiCommand              command;
     char*                   stopData;
-    long long               value;
     double                  valueDouble;
     MathematicalExpression* mathExpr;
+    #else
+    long long               stopValue;
+    #endif
 } Actuator;
 
+
+#ifdef EXTENDED_SENSORS_ACTUATORS
 void SPIAnswerToSensorValue(Sensor* sensor, spiAnswer answer);
 char* ActuatorValueToSPIData(Actuator* actuator);
-
-#else
-
-typedef struct
-{
-    char*                   sensorID;
-    SensorType              type;
-    long long               value;
-} Sensor;
-
-typedef struct
-{
-    char*                   actuatorID;
-    ActuatorType            type;
-    long long               value;
-    long long               stopValue;
-} Actuator;
-
 #endif
-
 
 Sensor* parseSensors(char* str, int length, unsigned int* sensorCount);
 Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount);

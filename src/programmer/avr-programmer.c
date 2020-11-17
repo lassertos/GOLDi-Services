@@ -8,8 +8,8 @@ int programControlUnitMicrocontroller(char* filepath)
     char* command = "avrdude -c linuxspi -p m2560 -P /dev/spidev0.1 -U flash:w:";
     char* completeCommand = malloc(strlen(command) + strlen(filepath) + 1);
 
-    strncpy(completeCommand, command, strlen(command));
-    strncpy(completeCommand+strlen(command), filepath, strlen(filepath));
+    strcpy(completeCommand, command);
+    strcpy(completeCommand+strlen(command), filepath);
     completeCommand[strlen(command) + strlen(filepath)] = '\0';
 
     int result = system(completeCommand);

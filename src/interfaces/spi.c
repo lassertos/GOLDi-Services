@@ -24,45 +24,59 @@ void closeSPIInterface()
     bcm2835_close();
 }
 
-// TODO: look if it needs a revamp
-spiAnswer executeSPICommand(spiCommand command, char* data)
+// TODO: look if it needs a revamp and add return value for failure
+spiAnswer executeSPICommand(spiCommand command, char* data, pthread_mutex_t* mutex)
 {
     spiAnswer answer = {NULL, 0};
-    int completeCommandLength = command.commandLength + command.dataLength + command.answerLength;
+    int completeCommandLength = 1 + command.dataLength + command.answerLength;
     char* completeCommand = malloc(completeCommandLength);
     if (completeCommand == NULL)
     {
         return answer;
     }
 
-    memcpy(completeCommand, command.command, command.commandLength);
-    memcpy(completeCommand + command.commandLength, data, command.dataLength);
+    completeCommand[0] = command.command;
+    memcpy(completeCommand + 1, data, command.dataLength);
     for (int i = 0; i < command.dataLength; i++)
     {
-        completeCommand[command.commandLength + command.dataLength + i] = 0;
+        completeCommand[1 + command.dataLength + i] = 0;
     }
 
+    printf("SPICOMMAND: ");
     for (int i = 0; i < completeCommandLength - command.answerLength; i++)
     {  
-        printf("SPICOMMAND: %x\n", completeCommand[i] & 0xff);
+        printf("%x", completeCommand[i] & 0xff);
     }
+    printf("\n");
+
+    pthread_mutex_lock(mutex);
     bcm2835_spi_transfern(completeCommand, completeCommandLength);
+    pthread_mutex_unlock(mutex);
+
+    printf("SPIANSWER: ");
     for (int i = 0; i < command.answerLength; i++)
     {  
-        printf("SPIANSWER: %x\n", completeCommand[i] & 0xff);
+        printf("%x", completeCommand[i] & 0xff);
     }
+    printf("\n");
 
+    //TODO check if it really works like that
     if (command.answerLength > 0)
     {
-        answer.answer = realloc(completeCommand, command.answerLength);
+        answer.content = malloc(command.answerLength);
+        for (int i = 0; i < command.answerLength; i++)
+        {
+            answer.content[i] = completeCommand[completeCommandLength - command.answerLength + i];
+        }
+        free(completeCommand);
     }
     else 
     {
-        answer.answer = NULL;
+        answer.content = NULL;
         free(completeCommand);
     }    
 
-    answer.answerLength = command.answerLength;
+    answer.length = command.answerLength;
 
     return answer;
 }

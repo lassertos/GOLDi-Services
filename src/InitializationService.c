@@ -48,7 +48,7 @@ int startInitialization(void)
             free(actuatorDataMsg);
         }
     }
-    pthread_join(&executionThread, &result);
+    pthread_join(executionThread, &result);
     if (!strcmp(execution.stateMachine->activeState->name, execution.stateMachine->endState->name))
     {
         char* resultString = serializeInt(result);

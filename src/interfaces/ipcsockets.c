@@ -1,4 +1,6 @@
 #include "ipcsockets.h"
+#include <errno.h>
+#include "../logging/log.h"
 
 /*
  *  A message for correct communication over the socket. The additional parameters are important 
@@ -29,7 +31,8 @@ int createIPCSocket(char* socketname)
         struct sockaddr_un addr;
         int fd;
         if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-            perror("socket error");
+            log_error("socket error: %s", strerror(errno));
+            //perror("socket error");
             return -1;
         }
 
@@ -42,13 +45,15 @@ int createIPCSocket(char* socketname)
         // +3 because of 2 bytes sun_family and 1 byte 0 character
         if (bind(fd, (struct sockaddr*)&addr, 3 + strlen(socketname)) == -1) 
         {
-            perror("bind error");
+            log_error("bind error: %s", strerror(errno));
+            //perror("bind error");
             return -1;
         }
 
         if (listen(fd, 5) == -1) 
         {
-            perror("listen error");
+            log_error("listen error: %s", strerror(errno));
+            //perror("listen error");
             return -1;
         }
 
@@ -67,7 +72,8 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
     IPCSocketConnection* connection = malloc(sizeof *connection);
 
     if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-		perror("socket error");
+        log_error("socket error: %s", strerror(errno));
+		//perror("socket error");
         free(connection);
 		return NULL;
 	}
@@ -85,7 +91,8 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
 
     // +3 because of 2 bytes sun_family and 1 byte 0 character
     if (connect(fd, (struct sockaddr*)&addr, 3 + strlen(socketname)) == -1) {
-    	perror("connect error");
+        log_error("connect error: %s", strerror(errno));
+    	//perror("connect error");
         free(connection);
     	return NULL;
     }
@@ -93,11 +100,13 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
     pthread_mutex_init(&connection->mutex, NULL);
 
     if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
-        fprintf(stderr, "Error creating IPC socket thread\n");
+        log_error("error creating IPC socket thread");
+        //fprintf(stderr, "Error creating IPC socket thread\n");
         return NULL;
     }
 
-    printf("started connection with %s\n", socketname);
+    log_info("started connection with %s", socketname);
+    //printf("started connection with %s\n", socketname);
 
     return connection;
 }
@@ -116,18 +125,21 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler
     if ((connection->fd = accept(fd, NULL, NULL)) == -1) 
     {
         free(connection);
-        perror("accept error");
+        log_error("accept error: %s", strerror(errno));
+        //perror("accept error");
         return NULL;
     }
 
     pthread_mutex_init(&connection->mutex, NULL);
 
     if(pthread_create(&connection->thread, NULL, messageHandler, connection)) {
-        fprintf(stderr, "Error creating IPC socket thread\n");
+        log_error("error creating IPC socket thread");
+        //fprintf(stderr, "Error creating IPC socket thread\n");
         return NULL;
     }
 
-    printf("accepted connection from %s\n", socketname);
+    log_info("accepted connection from %s", socketname);
+    //printf("accepted connection from %s\n", socketname);
 
     return connection;
 }
@@ -181,7 +193,8 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* ms
             if (completeLength > 0) fprintf(stderr,"partial write\n");
             else
             {
-                perror("write error");
+                log_error("write error: %s", strerror(errno));
+                //perror("write error");
                 free(ipcsc->buffer);
                 return -1;
             }
@@ -216,7 +229,8 @@ static char* readFromSocket(IPCSocketConnection* ipcsc, int bytes)
     }
     else if (rc == -1)
     {
-        perror("read");
+        log_error("read error: %s", strerror(errno));
+        //perror("read");
         return NULL;
     }
 }
@@ -308,7 +322,8 @@ void closeIPCConnection(IPCSocketConnection* ipcsc)
         close(ipcsc->fd);
         ipcsc->open = 0;
         pthread_join(ipcsc->thread, NULL);
-        printf("closed connection to %s\n", ipcsc->socketname);
+        log_info("closed connection to %s", ipcsc->socketname);
+        //printf("closed connection to %s\n", ipcsc->socketname);
         free(ipcsc);
     }
     pthread_mutex_unlock(&ipcsc->mutex);
