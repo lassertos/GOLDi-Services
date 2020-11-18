@@ -19,7 +19,7 @@
 #define INITIALIZATION_SERVICE "GOLDiInitializationService"
 #define WEBCAM_SERVICE "GOLDiWebcamService"
 
-#define MAX_MESSAGE_SIZE 1024
+#define MAX_MESSAGE_SIZE 64
 #define MESSAGE_HEADER_SIZE 16
 
 /*

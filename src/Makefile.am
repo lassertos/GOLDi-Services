@@ -1,7 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 GOLDiServicesdir = $(sysconfdir)/GOLDiServices
-GOLDiServicesLocaldir = /data/GOLDiServices
 
 IPCSockets = interfaces/ipcsockets.h interfaces/ipcsockets.c
 WebSockets = interfaces/websockets.h interfaces/websockets.c
@@ -19,8 +18,6 @@ Logging = logging/log.h logging/log.c
 if CONTROLUNIT
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiCommandService
 GOLDiCommunicationService_SOURCES = CommunicationServiceCU.c 
-
-GOLDiServicesLocal_DATA = templates/DeviceDataCUTemplate.json
 else
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiWebcamService GOLDiProtectionService GOLDiInitializationService
 GOLDiCommunicationService_SOURCES = CommunicationServicePS.c 
@@ -28,7 +25,6 @@ GOLDiCommunicationService_SOURCES = CommunicationServicePS.c
 GOLDiServicesExperimentsdir = $(GOLDiServicesdir)/experiments
 GOLDiServices3AxisPortaldir = $(GOLDiServicesExperimentsdir)/3AxisPortal
 GOLDiServices3AxisPortal_DATA = experiments/3AxisPortal/ExperimentData.json experiments/3AxisPortal/FPGA.svf
-GOLDiServicesLocal_DATA = templates/DeviceDataPSTemplate.json
 endif
 
 GOLDiCommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
