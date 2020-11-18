@@ -17,13 +17,13 @@ Programmers = programmer/goldi-programmer.h programmer/bcmGPIO.h programmer/avr-
 Logging = logging/log.h logging/log.c
 
 if CONTROLUNIT
-bin_PROGRAMS = CommunicationService ProgrammingService CommandService
-CommunicationService_SOURCES = CommunicationServiceCU.c 
+bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiCommandService
+GOLDiCommunicationService_SOURCES = CommunicationServiceCU.c 
 
 GOLDiServicesLocal_DATA = templates/DeviceDataCUTemplate.json
 else
-bin_PROGRAMS = CommunicationService ProgrammingService WebcamService ProtectionService InitializationService
-CommunicationService_SOURCES = CommunicationServicePS.c 
+bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiWebcamService GOLDiProtectionService GOLDiInitializationService
+GOLDiCommunicationService_SOURCES = CommunicationServicePS.c 
 
 GOLDiServicesExperimentsdir = $(GOLDiServicesdir)/experiments
 GOLDiServices3AxisPortaldir = $(GOLDiServicesExperimentsdir)/3AxisPortal
@@ -31,27 +31,27 @@ GOLDiServices3AxisPortal_DATA = experiments/3AxisPortal/ExperimentData.json expe
 GOLDiServicesLocal_DATA = templates/DeviceDataPSTemplate.json
 endif
 
-CommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
-CommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
-CommunicationService_LDFLAGS = -g
+GOLDiCommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
+GOLDiCommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
+GOLDiCommunicationService_LDFLAGS = -g
 
-WebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
-WebcamService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
-WebcamService_LDFLAGS = -g
+GOLDiWebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
+GOLDiWebcamService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
+GOLDiWebcamService_LDFLAGS = -g
 
-ProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
-ProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
-ProtectionService_LDFLAGS = -g
-ProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS
+GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
+GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
+GOLDiProtectionService_LDFLAGS = -g
+GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS
 
-InitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
-InitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
-InitializationService_LDFLAGS = -g
+GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
+GOLDiInitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
+GOLDiInitializationService_LDFLAGS = -g
 
-ProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)
-ProgrammingService_LDADD = -lpthread -lsystemd -lbcm2835 -lxsvf
-ProgrammingService_LDFLAGS = -g
+GOLDiProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)
+GOLDiProgrammingService_LDADD = -lpthread -lsystemd -lbcm2835 -lxsvf
+GOLDiProgrammingService_LDFLAGS = -g
 
-CommandService_SOURCES = CommandService.c $(IPCSockets) $(Utils) $(JSON) $(Logging) $(SensorsActuators) $(SPI)
-CommandService_LDADD = -lpthread -lsystemd -lbcm2835 -lcjson
-CommandService_LDFLAGS = -g
+GOLDiCommandService_SOURCES = CommandService.c $(IPCSockets) $(Utils) $(JSON) $(Logging) $(SensorsActuators) $(SPI)
+GOLDiCommandService_LDADD = -lpthread -lsystemd -lbcm2835 -lcjson
+GOLDiCommandService_LDFLAGS = -g

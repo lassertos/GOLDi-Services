@@ -7,6 +7,8 @@
 #include "parsers/json.h"
 #include "logging/log.h"
 
+//TODO add signal handler for updates
+
 /* global variables needed for execution */
 static websocketConnection wscLabserver;            // the websocket to the Labserver
 static websocketConnection wscControlUnit;          // the websocket to the Control Unit

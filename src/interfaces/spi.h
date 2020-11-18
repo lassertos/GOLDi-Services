@@ -1,6 +1,11 @@
 #ifndef SPI_H
 #define SPI_H
 
+#define SPICOMMAND_READ_GPIO  (spiCommand){0xFC, 1, 1}
+#define SPICOMMAND_WRITE_GPIO (spiCommand){0xFD, 2, 0}
+
+//TODO give the correct command to the sensors and actuators with the config data
+
 #include <bcm2835.h>
 #include <stdio.h>
 #include <pthread.h>

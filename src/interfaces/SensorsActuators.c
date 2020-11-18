@@ -23,9 +23,8 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
     {
         const JSON* sensorID = JSONGetObjectItem(jsonSensor, "SensorID");
         const JSON* sensorType = JSONGetObjectItem(jsonSensor, "SensorType");
-        const JSON* sensorPinMapping = JSONGetObjectItem(jsonSensor, "SensorPinMapping");
 
-        if (sensorID == NULL || sensorType == NULL || sensorPinMapping == NULL)
+        if (sensorID == NULL || sensorType == NULL)
         {
             log_error("sensor data incomplete");
             return NULL;
@@ -78,7 +77,7 @@ Sensor* parseSensors(char* str, int length, unsigned int* sensorCount)
         sensors[currentIndex].sensorID = malloc(strlen(sensorID->valuestring)+1);
         strcpy(sensors[currentIndex].sensorID, sensorID->valuestring);
 
-        sensors[currentIndex].pinMapping = sensorPinMapping->valueint;
+        sensors[currentIndex].pinMapping = currentIndex;
 
         if(!strcmp(sensorType->valuestring,"binary"))
         {
@@ -127,9 +126,8 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
     {
         const JSON* actuatorID = JSONGetObjectItem(jsonActuator, "ActuatorID");
         const JSON* actuatorType = JSONGetObjectItem(jsonActuator, "ActuatorType");
-        const JSON* actuatorPinMapping = JSONGetObjectItem(jsonActuator, "ActuatorPinMapping");
 
-        if (actuatorID == NULL || actuatorType == NULL || actuatorPinMapping == NULL)
+        if (actuatorID == NULL || actuatorType == NULL)
         {
             log_error("actuator data incomplete!");
             return NULL;
@@ -166,7 +164,7 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         actuators[currentIndex].actuatorID = malloc(strlen(actuatorID->valuestring)+1);
         strcpy(actuators[currentIndex].actuatorID, actuatorID->valuestring);
 
-        actuators[currentIndex].pinMapping = actuatorPinMapping->valueint;
+        actuators[currentIndex].pinMapping = currentIndex;
 
         if(!strcmp(actuatorType->valuestring,"binary"))
         {
@@ -307,10 +305,31 @@ void destroyActuators(Actuator* actuators, unsigned int actuatorCount)
 
 #ifdef EXTENDED_SENSORS_ACTUATORS
 
-// TODO: look if it needs a revamp
+// TODO: look if it needs a revamp 
 char* ActuatorValueToSPIData(Actuator* actuator)
 {
-    char* result = malloc(sizeof(long long));
+    char* result = malloc(actuator->command.dataLength);
+    switch(actuator->type)
+    {
+        case ActuatorTypeBinary:
+        {
+            if (!actuator->value)
+            {
+                result[0] = 0;
+            }
+            else
+            {
+                result[0] = 1;
+            }
+        }
+        
+        default:
+        {
+            return NULL;
+        }
+    }
+    // old implementation can be deleted if not needed anymore
+    /* char* result = malloc(sizeof(long long));
     long long value = actuator->value;
     if (actuator->mathExpr != NULL)
     {
@@ -319,7 +338,7 @@ char* ActuatorValueToSPIData(Actuator* actuator)
     for (int i = 0; i < sizeof(long long); i++)
     {
         result[i] = (value >> ((sizeof(long long) - (i+1)) * 8));
-    }
+    } */
     return result;
 }
 
