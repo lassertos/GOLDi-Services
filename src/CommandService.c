@@ -1,6 +1,3 @@
-#define SPICOMMAND_READ_GPIO  (spiCommand){0xFC, 1, 1}
-#define SPICOMMAND_WRITE_GPIO (spiCommand){0xFD, 2, 0}   
-
 #include "interfaces/ipcsockets.h"
 #include "interfaces/spi.h"
 #include "interfaces/SensorsActuators.h"
@@ -54,6 +51,7 @@ static void sigint_handler(int sig)
     return 0;
 }*/
 
+//TODO update once spi changes have been made
 static int sendSensorValue(Sensor* sensor)
 {
     if (stopped)
@@ -78,7 +76,7 @@ static int sendSensorValue(Sensor* sensor)
             }
             else
             {
-                data[1] = 0x80;
+                data[1] = 0x01;
             }
             executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
             free(data);
@@ -106,7 +104,7 @@ static ActuatorDataPacket* retrieveActuatorValues(unsigned int* packetcount)
             case ActuatorTypeBinary:
             {   
                 long long oldValue = actuators[i].value;
-                char data = actuators[i].pinMapping;
+                char data = i;
                 spiAnswer answer = executeSPICommand(SPICOMMAND_READ_GPIO, &data, &mutexSPI);
                 actuators[i].value = answer.content[0];
                 free(answer.content);

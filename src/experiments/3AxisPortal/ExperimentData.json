@@ -63,7 +63,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":1,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -78,7 +77,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":2,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -93,7 +91,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":3,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -108,7 +105,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":4,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -123,7 +119,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":5,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -138,7 +133,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":6,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -153,7 +147,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":9,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -168,7 +161,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":10,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -183,7 +175,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":11,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -198,7 +189,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":12,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":true
 		},
@@ -213,7 +203,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":13,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -228,7 +217,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":14,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -243,7 +231,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":19,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -258,7 +245,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":20,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -273,7 +259,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":21,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -288,7 +273,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":22,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -303,7 +287,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":23,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -318,7 +301,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":24,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -333,7 +315,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":25,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -348,7 +329,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":26,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -363,7 +343,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":27,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -378,7 +357,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":28,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -393,7 +371,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":32,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -408,7 +385,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":33,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -423,7 +399,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":34,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -438,7 +413,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":35,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -453,7 +427,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":38,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -468,7 +441,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":39,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -483,7 +455,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":40,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -498,7 +469,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":41,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -513,7 +483,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":42,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -528,7 +497,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":43,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -543,7 +511,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":47,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -558,7 +525,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":48,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -573,7 +539,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":49,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -588,7 +553,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":50,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -603,7 +567,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":52,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -618,7 +581,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":54,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -633,7 +595,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":55,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -648,7 +609,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":56,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -663,7 +623,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":57,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
@@ -678,7 +637,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"SensorPinMapping":58,
 			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		}
@@ -696,7 +654,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":59,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -711,7 +668,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":60,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -726,7 +682,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":61,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -741,7 +696,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":62,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -756,7 +710,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":73,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -771,7 +724,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":74,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		},
@@ -786,7 +738,6 @@
 				"DataLength":0,
 				"AnswerLength":0
 			},
-			"ActuatorPinMapping":75,
 			"ActuatorStopValue":0,
 			"ActuatorMathExpression":null
 		}

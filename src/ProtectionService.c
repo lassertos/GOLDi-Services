@@ -460,7 +460,9 @@ int main(int argc, char const *argv[])
             for (int i = 0; i < sensorCount; i++)
             {
                 oldSensorValues[i] = sensors[i].value;
-                spiAnswer answer = executeSPICommand(sensors[i].command, NULL, &mutexSPI);
+                char data = sensors[i].pinMapping;
+                //TODO update once spi changes have been made
+                spiAnswer answer = executeSPICommand(SPICOMMAND_READ_GPIO, &data, &mutexSPI);
                 SPIAnswerToSensorValue(&sensors[i], answer);
                 if(answer.length > 0)
                 {
@@ -568,8 +570,12 @@ int main(int argc, char const *argv[])
                 {
                     break;
                 }
-                char * data = ActuatorValueToSPIData(&actuators[i]);
-                answer = executeSPICommand(actuators[i].command, data, &mutexSPI);
+                //TODO update once spi changes have been made
+                char* data = ActuatorValueToSPIData(&actuators[i]);
+                char* completeData = malloc(SPICOMMAND_WRITE_GPIO.dataLength);
+                completeData[0] = actuators[i].pinMapping;
+                memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
+                answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
                 free(data);
                 free(answer.content);
             }
