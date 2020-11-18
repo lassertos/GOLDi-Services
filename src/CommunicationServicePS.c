@@ -443,7 +443,7 @@ int main(int argc, char const *argv[])
 
     /* before continuing to parse try to create serversocket for wsc with Control Unit */
     char* ipAdress = JSONGetObjectItem(JSONGetObjectItem(jsonDeviceConfig, "Network"), "LocalIP")->valuestring;
-    if(websocketPrepareContext(&wscControlUnit, COMMUNICATION_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wscControlUnit, COMMUNICATION_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 1))
     {
         return -1;
     }
