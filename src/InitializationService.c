@@ -4,6 +4,7 @@
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
 #include "interfaces/ipcsockets.h"
+#include "logging/log.h"
 
 static IPCSocketConnection* communicationService;
 Sensor* sensors;
