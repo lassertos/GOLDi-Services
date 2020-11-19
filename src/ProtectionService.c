@@ -99,12 +99,14 @@ int parseProtectionRules(char *protectionString)
     JSON* protectionJSON = JSONParse(protectionString);
     if (protectionJSON == NULL)
     {
+        log_error("parse protection: string could not be parsed to json");
         return 1;
     }
 
     JSON* protectionRulesJSON = JSONGetObjectItem(protectionJSON, "ProtectionRules");
     if (protectionRulesJSON == NULL)
     {
+        log_error("parse protection: protection could not be accessed in json");
         return 1;
     }
 
@@ -112,6 +114,7 @@ int parseProtectionRules(char *protectionString)
     Protectionrules.rules = malloc(sizeof(*Protectionrules.rules)*Protectionrules.count);
     if (Protectionrules.rules == NULL)
     {
+        log_error("parse protection: malloc error %s", strerror(errno));
         return 1;
     }
 
@@ -160,6 +163,7 @@ int parseProtectionRules(char *protectionString)
         Protectionrules.rules[currentIndex].errorMessage = malloc(strlen(errorMessageJSON->valuestring)+1);
         if (Protectionrules.rules[currentIndex].errorMessage == NULL)
         {
+            log_error("parse protection: malloc error %s", strerror(errno));
             return 1;
         }
         memcpy(Protectionrules.rules[currentIndex].errorMessage, errorMessageJSON->valuestring, strlen(errorMessageJSON->valuestring)+1);
