@@ -236,22 +236,32 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             {
                 log_debug("receiving IPC message");
                 Message msg = receiveMessageIPC(ipcsc);
-                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_INITPROTECTIONSERVICE:
                     {
+                        log_debug("initialization: starting initialization");
+                        log_debug("initialization: parsing message content to json");
                         JSON* msgJSON = JSONParse(msg.content);
+                        log_debug("initialization: parsing sensors as json from message json");
                         JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
+                        log_debug("initialization: parsing actuators as json from message json");
                         JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
+                        log_debug("initialization: parsing protection as json from message json");
                         JSON* protectionRulesJSON = JSONGetObjectItem(msgJSON, "ProtectionRules");
+                        log_debug("initialization: converting sensors json to string");
                         char* stringSensors = JSONPrint(sensorsJSON);
+                        log_debug("initialization: converting actuators json to string");
                         char* stringActuators = JSONPrint(actuatorsJSON);
+                        log_debug("initialization: converting protection json to string");
                         char* stringProtectionRules = JSONPrint(protectionRulesJSON);
 
+                        log_debug("initialization: parsing sensors");
                         sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
                         if (sensors == NULL)
                         {
+                            log_error("initialization: sensors could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                             free(result);
@@ -265,12 +275,13 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             }
                         }
 
-                        
+                        log_debug("initialization: parsing actuators");
                         incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
                         actuators = malloc(sizeof(*actuators)*actuatorCount);
                         *actuators = *incomingActuators;
                         if (incomingActuators == NULL)
                         {
+                            log_error("initialization: actuators could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                             free(result);
@@ -284,8 +295,10 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             }
                         }
 
+                        log_debug("initialization: parsing protection");
                         if (parseProtectionRules(stringProtectionRules))
                         {
+                            log_error("initialization: protection could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                             free(result);
@@ -311,6 +324,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             }
                         }
 
+                        log_debug("initialization: sending result to Communication Service");
                         char* result = serializeInt(1);
                         sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                         free(result);
