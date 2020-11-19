@@ -234,6 +234,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
         {
             while(hasMessages(ipcsc))
             {
+                log_debug("receiving IPC message");
                 Message msg = receiveMessageIPC(ipcsc);
                 log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
@@ -439,6 +440,11 @@ int main(int argc, char const *argv[])
     /* initialize the mutex and all needed sockets */
     pthread_mutex_init(&mutexSPI, NULL);
 
+    if (setupSPIInterface())
+    {
+        return -1;
+    }
+
     int fd = createIPCSocket(PROTECTION_SERVICE);
     IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
@@ -590,6 +596,7 @@ int main(int argc, char const *argv[])
                 spiAnswer answer;
                 if (stoppedPS)
                 {
+                    log_info("stopping sending of actuator values to fpga");
                     break;
                 }
                 //TODO update once spi changes have been made
@@ -616,5 +623,7 @@ int main(int argc, char const *argv[])
     destroyActuators(incomingActuators, actuatorCount);
     pthread_mutex_destroy(&mutexSPI);
     free(actuators);
+    closeSPIInterface();
+    closeIPCConnection(communicationService);
     return 0;
 }
