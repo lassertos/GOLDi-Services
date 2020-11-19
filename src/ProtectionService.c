@@ -244,18 +244,53 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         log_debug("initialization: starting initialization");
                         log_debug("initialization: parsing message content to json");
                         JSON* msgJSON = JSONParse(msg.content);
+                        if (msgJSON == NULL)
+                        {
+                            log_error("initialization: IPC message could not be parsed to JSON");
+                            break;
+                        }
                         log_debug("initialization: parsing sensors as json from message json");
                         JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
+                        if (sensorsJSON == NULL)
+                        {
+                            log_error("initialization: sensors not included in message json");
+                            break;
+                        }
                         log_debug("initialization: parsing actuators as json from message json");
                         JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
+                        if (actuatorsJSON == NULL)
+                        {
+                            log_error("initialization: actuators not included in message json");
+                            break;
+                        }
                         log_debug("initialization: parsing protection as json from message json");
                         JSON* protectionRulesJSON = JSONGetObjectItem(msgJSON, "ProtectionRules");
+                        if (protectionRulesJSON == NULL)
+                        {
+                            log_error("initialization: protection not included in message json");
+                            break;
+                        }
                         log_debug("initialization: converting sensors json to string");
                         char* stringSensors = JSONPrint(sensorsJSON);
+                        if (stringSensors == NULL)
+                        {
+                            log_error("initialization: sensors json could not be parsed to string");
+                            break;
+                        }
                         log_debug("initialization: converting actuators json to string");
                         char* stringActuators = JSONPrint(actuatorsJSON);
+                        if (stringActuators == NULL)
+                        {
+                            log_error("initialization: actuators json could not be parsed to string");
+                            break;
+                        }
                         log_debug("initialization: converting protection json to string");
                         char* stringProtectionRules = JSONPrint(protectionRulesJSON);
+                        if (stringProtectionRules == NULL)
+                        {
+                            log_error("initialization: protection json could not be parsed to string");
+                            break;
+                        }
 
                         log_debug("initialization: parsing sensors");
                         sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
