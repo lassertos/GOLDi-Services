@@ -5,11 +5,11 @@ int setupSPIInterface()
 {
     if (!bcm2835_init())
     {
-        return -1;
+        return 1;
     }
     if (!bcm2835_spi_begin())
     {
-        return -1;
+        return 1;
     }
     bcm2835_spi_set_speed_hz(3900000);
     bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
