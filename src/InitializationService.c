@@ -59,7 +59,7 @@ int startInitialization(void)
     return result;
 }
 
-static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
+static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
     while(1)
     {
@@ -215,7 +215,7 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(INITIALIZATION_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
+    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
         printf("Connection to Communication Service could not be established!\n");

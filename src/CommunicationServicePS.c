@@ -484,7 +484,7 @@ int main(int argc, char const *argv[])
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Actuators", jsonActuators);
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Initializers", jsonInitializers);
     char* stringInitializationInitMsg = JSONPrint(jsonInitializationInitMsg);
-    sendMessageIPC(protectionService, IPCMSGTYPE_INITINITIALIZATION, stringInitializationInitMsg, strlen(stringInitializationInitMsg));
+    sendMessageIPC(initializationService, IPCMSGTYPE_INITINITIALIZATION, stringInitializationInitMsg, strlen(stringInitializationInitMsg));
 
     JSONDelete(jsonInitializationInitMsg);
     free(stringInitializationInitMsg);
