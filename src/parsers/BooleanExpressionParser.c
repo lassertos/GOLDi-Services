@@ -403,6 +403,7 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
                         if (!strncmp(variables[i].name, leaf->name, strlen(variables[i].name)))
                         {
                             leaf->result = (long long*)variables[i].address;
+                            break;
                         }
                     }
                     if (leaf->result == NULL)
