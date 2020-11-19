@@ -1,3 +1,5 @@
+#define EXTENDED_SENSORS_ACTUATORS
+
 #include "parsers/StateMachine.h"
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
