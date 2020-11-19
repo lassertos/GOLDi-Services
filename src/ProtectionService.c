@@ -112,6 +112,16 @@ int parseProtectionRules(char *protectionString)
         return 1;
     }
 
+    Variable* variables = malloc(sizeof(*variables)*(sensorCount+actuatorCount));
+    for (int i = 0; i < sensorCount; i++)
+    {
+        variables[i] = (Variable){sensors[i].sensorID, &sensors[i].value};
+    }
+    for (int i = sensorCount; i < sensorCount+actuatorCount; i++)
+    {
+        variables[i] = (Variable){actuators[i].actuatorID, &actuators[i].value};
+    }
+
     JSON* protectionRuleJSON = NULL;
     int currentIndex = 0;
     JSONArrayForEach(protectionRuleJSON, protectionRulesJSON)
@@ -120,18 +130,7 @@ int parseProtectionRules(char *protectionString)
         JSON* errorMessageJSON = JSONGetObjectItem(protectionRuleJSON, "ErrorMessage");
         JSON* errorCodeJSON = JSONGetObjectItem(protectionRuleJSON, "ErrorCode");
         char* expressionString = expressionJSON->valuestring;
-        Variable* variables = malloc(sizeof(*variables)*(sensorCount+actuatorCount));
-        for (int i = 0; i < sensorCount; i++)
-        {
-            variables[i] = (Variable){sensors[i].sensorID, &sensors[i].value};
-        }
-        for (int i = sensorCount; i < sensorCount+actuatorCount; i++)
-        {
-            unsigned int k = i - sensorCount;
-            variables[k] = (Variable){actuators[k].actuatorID, &actuators[k].value};
-        }
         Protectionrules.rules[currentIndex].expression = parseBooleanExpression(expressionString, strlen(expressionString), variables, sensorCount+actuatorCount);
-        free(variables);
         
         /* find out what kind of fault/error the protection rule would trigger */
         if (strchr(expressionString, SENSOR_PREFIX) != NULL)
@@ -164,6 +163,8 @@ int parseProtectionRules(char *protectionString)
         Protectionrules.rules[currentIndex].errorCode = errorCodeJSON->valueint;
         currentIndex++;
     }
+
+    free(variables);
 
     JSONDelete(protectionRulesJSON);
 
