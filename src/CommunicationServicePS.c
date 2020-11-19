@@ -193,7 +193,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             if(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_SENSORDATA:
@@ -453,6 +453,7 @@ int main(int argc, char const *argv[])
     free(fpgaSVFContent);
 
     /* initialize Protection Service */
+    log_info("initializing Protection Service");
     JSON* jsonProtectionInitMsg = JSONCreateObject();
     JSONAddItemReferenceToObject(jsonProtectionInitMsg, "Sensors", jsonSensors);
     JSONAddItemReferenceToObject(jsonProtectionInitMsg, "Actuators", jsonActuators);
@@ -463,17 +464,20 @@ int main(int argc, char const *argv[])
     JSONDelete(jsonProtectionInitMsg);
     free(stringProtectionInitMsg);
 
+    log_info("waiting for Protection Service to finish initializing");
     while(!(ServiceInitializations.protectionService > 0))
     {
         if (ServiceInitializations.protectionService == -1)
         {
             //TODO error handling
-            log_error("the Protection Service could not be initialized correctly");
+            log_error("the Protection Service initialization failed");
             return -1;
         }
     }
+    log_info("the Protection Service was initialized successfully");
 
     /* initialize Initialization Service */
+    log_info("initializing Initialization Service");
     JSON* jsonInitializationInitMsg = JSONCreateObject();
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Sensors", jsonSensors);
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Actuators", jsonActuators);
@@ -484,17 +488,20 @@ int main(int argc, char const *argv[])
     JSONDelete(jsonInitializationInitMsg);
     free(stringInitializationInitMsg);
 
+    log_info("waiting for Initialization Service to finish initializing");
     while(!(ServiceInitializations.initializationService > 0))
     {
         if (ServiceInitializations.initializationService == -1)
         {
             //TODO error handling
-            log_error("the Initialization Service could not be initialized correctly");
+            log_error("the Initialization Service initialization failed");
             return -1;
         }
     }
+    log_info("the Initialization Service was initialized successfully");
 
     /* initialize Webcam Service */
+    log_info("initializing Webcam Service");
     JSON* jsonWebcamInitMsg = JSONCreateObject();
     JSONAddItemReferenceToObject(jsonWebcamInitMsg, "Type", jsonCameraType);
     JSONAddItemReferenceToObject(jsonWebcamInitMsg, "Address", jsonCameraAddress);
@@ -505,15 +512,17 @@ int main(int argc, char const *argv[])
     JSONDelete(jsonWebcamInitMsg);
     free(stringWebcamInitMsg);
 
+    log_info("waiting for Webcam Service to finish initializing");
     while(!(ServiceInitializations.webcamService > 0))
     {
         if (ServiceInitializations.webcamService == -1)
         {
             //TODO error handling
-            log_error("the Webcam Service could not be initialized correctly");
+            log_error("the Webcam Service initialization failed");
             return -1;
         }
     }
+    log_info("the Webcam Service was initialized successfully");
 
     /* prepare experiment data for Labserver and Control Unit */
     JSON* jsonSensor = NULL;

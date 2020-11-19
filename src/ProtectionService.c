@@ -6,6 +6,7 @@
 #include "interfaces/spi.h"
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
+#include "logging/log.h"
 
 /* all possible error types */
 typedef enum
@@ -234,7 +235,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             while(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                //printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_INITPROTECTIONSERVICE:
@@ -263,6 +264,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             }
                         }
 
+                        
                         incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
                         actuators = malloc(sizeof(*actuators)*actuatorCount);
                         *actuators = *incomingActuators;

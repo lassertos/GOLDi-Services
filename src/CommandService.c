@@ -143,7 +143,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             if(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                printf("MESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s\n", msg.type, msg.length, msg.content);
+                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_SENSORDATA:
