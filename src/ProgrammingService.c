@@ -4,6 +4,7 @@
 
 #include "interfaces/ipcsockets.h"
 #include "programmer/goldi-programmer.h"
+#include "logging/log.h"
 
 IPCSocketConnection* communicationService;
 

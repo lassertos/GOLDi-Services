@@ -2,6 +2,7 @@
 #include "interfaces/websockets.h"
 #include "interfaces/ipcsockets.h"
 #include "parsers/json.h"
+#include "logging/log.h"
 
 static const char* ffmpegCommandBlueprint = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
 static char* ffmpegCommand;
