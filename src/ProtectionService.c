@@ -67,7 +67,8 @@ static Actuator* incomingActuators;                 // this is used for bufferin
 static unsigned int sensorCount;                    // the amount of sensors
 static unsigned int actuatorCount;                  // the amount of actuators
 static unsigned int stoppedPS = 1;                  // indicates whether the physical system has been stopped
-pthread_mutex_t mutexSPI;                           // used to coordinate spi access
+static pthread_mutex_t mutexSPI;                    // used to coordinate spi access
+static volatile unsigned int initialized = 0;       // used to indicate whether the service has been initialized
 
 /*
  * the sigint handler, can also be used for cleanup after execution 
@@ -175,7 +176,7 @@ int parseProtectionRules(char *protectionString)
 
     for (int i = 0; i < Protectionrules.count; i++)
     {
-        printProtectionRule(Protectionrules.rules[i]);
+        //printProtectionRule(Protectionrules.rules[i]);
     }
 
     return 0;
@@ -373,6 +374,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         char* result = serializeInt(1);
                         sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                         free(result);
+                        initialized = 1;
 
                         break;
                     }
@@ -507,6 +509,8 @@ int main(int argc, char const *argv[])
         printf("Connection to Communication Service could not be established!\n");
         return -1;
     }
+
+    while(!initialized);
 
     while(1)
     {
