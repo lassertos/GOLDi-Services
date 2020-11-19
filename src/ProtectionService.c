@@ -329,7 +329,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                //printActuatorData(incomingActuators[i]);
+                                printActuatorData(incomingActuators[i]);
                             }
                         }
 
