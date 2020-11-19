@@ -97,14 +97,7 @@ void printProtectionRule(Protectionrule rule)
  */
 int parseProtectionRules(char *protectionString)
 {
-    JSON* protectionJSON = JSONParse(protectionString);
-    if (protectionJSON == NULL)
-    {
-        log_error("parse protection: string could not be parsed to json");
-        return 1;
-    }
-
-    JSON* protectionRulesJSON = JSONGetObjectItem(protectionJSON, "ProtectionRules");
+    JSON* protectionRulesJSON = JSONParse(protectionString);
     if (protectionRulesJSON == NULL)
     {
         log_error("parse protection: protection could not be accessed in json");
@@ -172,7 +165,7 @@ int parseProtectionRules(char *protectionString)
         currentIndex++;
     }
 
-    JSONDelete(protectionJSON);
+    JSONDelete(protectionRulesJSON);
 
     for (int i = 0; i < Protectionrules.count; i++)
     {

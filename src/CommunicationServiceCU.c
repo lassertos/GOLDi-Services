@@ -1,3 +1,5 @@
+#define FPGASVF_FILENAME "FPGA.svf"
+
 #include "interfaces/ipcsockets.h"
 #include "interfaces/websockets.h"
 #include "utils/utils.h"
@@ -347,6 +349,20 @@ int main(int argc, char const *argv[])
             return -1;
         }
     }
+
+    /* find fpga programming file and read content */ 
+    char* experimentType = jsonExperimentType->valuestring;
+    char* fpgaSVFPath = malloc(strlen(experimentType) + strlen(experimentType) + strlen(FPGASVF_FILENAME) + 2);
+    strcpy(fpgaSVFPath, "/etc/GOLDiServices/controlunits/");    //TODO create directory with yocto and place files
+    strcat(fpgaSVFPath, experimentType);
+    strcat(fpgaSVFPath, "/");
+    strcat(fpgaSVFPath, FPGASVF_FILENAME);
+    char* fpgaSVFContent = readFile(fpgaSVFPath, NULL);
+    free(fpgaSVFPath);
+
+    /* program the fpga */
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
+    free(fpgaSVFContent);
 
     JSON* jsonExperimentConfig = JSONCreateObject();
     JSONAddFalseToObject(jsonExperimentConfig, "PS");
