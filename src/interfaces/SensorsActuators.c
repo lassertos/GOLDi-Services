@@ -156,7 +156,7 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         actuators[currentIndex].command.answerLength = JSONGetObjectItem(actuatorCommand, "AnswerLength")->valueint;
         actuators[currentIndex].command.dataLength = JSONGetObjectItem(actuatorCommand, "DataLength")->valueint;
         actuators[currentIndex].command.command = JSONGetObjectItem(actuatorCommand, "Command")->valueint;
-        actuators[currentIndex].valueDouble = JSONGetNumberValue(JSONGetObjectItem(actuatorCommand, "ActuatorStopValue"));
+        actuators[currentIndex].valueDouble = (double)JSONGetNumberValue(JSONGetObjectItem(actuatorCommand, "ActuatorStopValue"));
         actuators[currentIndex].stopData = ActuatorValueToSPIData(&actuators[currentIndex]);
 
         #endif

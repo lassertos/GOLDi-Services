@@ -119,7 +119,8 @@ int parseProtectionRules(char *protectionString)
     }
     for (int i = sensorCount; i < sensorCount+actuatorCount; i++)
     {
-        variables[i] = (Variable){actuators[i].actuatorID, &actuators[i].value};
+        unsigned int k = i - sensorCount;
+        variables[i] = (Variable){actuators[k].actuatorID, &actuators[k].value};
     }
 
     JSON* protectionRuleJSON = NULL;
