@@ -296,8 +296,11 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             break;
                         }
 
+                        JSONDelete(msgJSON);
+
                         log_debug("initialization: parsing sensors");
                         sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
+                        free(stringSensors);
                         if (sensors == NULL)
                         {
                             log_error("initialization: sensors could not be parsed successfully");
@@ -318,6 +321,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
                         actuators = malloc(sizeof(*actuators)*actuatorCount);
                         *actuators = *incomingActuators;
+                        free(stringActuators);
                         if (incomingActuators == NULL)
                         {
                             log_error("initialization: actuators could not be parsed successfully");
@@ -341,8 +345,10 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                             free(result);
+                            free(stringProtectionRules);
                             break;
                         }
+                        free(stringProtectionRules);
                         delayBasedFaults.maxCount = 0;
                         for (int i = 0; i < Protectionrules.count; i++)
                         {
@@ -368,10 +374,6 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                         free(result);
 
-                        JSONDelete(msgJSON);
-                        free(stringSensors);
-                        free(stringActuators);
-                        free(stringProtectionRules);
                         break;
                     }
 
