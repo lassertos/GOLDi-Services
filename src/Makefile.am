@@ -41,7 +41,7 @@ GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
 
 GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
 GOLDiInitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
-GOLDiInitializationService_CPPFLAGS = -g -O0
+GOLDiInitializationService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
 
 GOLDiProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)
 GOLDiProgrammingService_LDADD = -lpthread -lsystemd -lbcm2835 -lxsvf
