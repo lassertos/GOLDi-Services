@@ -315,7 +315,10 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         log_debug("initialization: parsing actuators");
                         incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
                         actuators = malloc(sizeof(*actuators)*actuatorCount);
-                        *actuators = *incomingActuators;
+                        for (int i = 0; i < actuatorCount; i++)
+                        {
+                            actuators[i] = incomingActuators[i];
+                        }
                         free(stringActuators);
                         if (incomingActuators == NULL)
                         {
@@ -553,7 +556,10 @@ int main(int argc, char const *argv[])
             free(sensorDataMsg);
         }
 
-        *actuators = *incomingActuators;
+        for (int i = 0; i < actuatorCount; i++)
+        {
+            actuators[i] = incomingActuators[i];
+        }
 
         if (stoppedPS)
         {
