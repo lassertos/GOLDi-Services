@@ -22,7 +22,7 @@ static char* deviceDataCompact;                     // here a compact version of
 static unsigned int initializingPS = 0;             // indicates whether the physical system is currently being initialized
 
 /* struct containing result of service initializations */
-struct 
+volatile struct 
 {
     int protectionService;
     int initializationService;
@@ -192,6 +192,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
         {
             if(hasMessages(ipcsc))
             {
+                log_info("receive IPC message");
                 Message msg = receiveMessageIPC(ipcsc);
                 //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
