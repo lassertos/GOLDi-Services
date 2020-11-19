@@ -215,7 +215,7 @@ static int messageHandlerCommunicationService(IPCSocketConnection* ipcsc)
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(INITIALIZATION_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
+    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerCommunicationService);
     if (communicationService == NULL)
     {
         printf("Connection to Communication Service could not be established!\n");

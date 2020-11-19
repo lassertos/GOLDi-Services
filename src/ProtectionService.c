@@ -503,7 +503,7 @@ int main(int argc, char const *argv[])
     }
 
     int fd = createIPCSocket(PROTECTION_SERVICE);
-    IPCSocketConnection* communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
         printf("Connection to Communication Service could not be established!\n");
