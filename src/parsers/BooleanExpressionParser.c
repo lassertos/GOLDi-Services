@@ -399,6 +399,7 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
                     leaf->name[token->length] = '\0';
                     for (int i = 0; i < variablesCount; i++)
                     {
+                        printf("%s %s\n", leaf->name, variables[i].name);
                         if (!strncmp(variables[i].name, leaf->name, strlen(variables[i].name)))
                         {
                             leaf->result = (long long*)variables[i].address;
