@@ -29,25 +29,24 @@ endif
 
 GOLDiCommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
 GOLDiCommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
-GOLDiCommunicationService_LDFLAGS = -g
+GOLDiCommunicationService_CPPFLAGS = -g -O0
 
 GOLDiWebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
 GOLDiWebcamService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
-GOLDiWebcamService_LDFLAGS = -g
+GOLDiWebcamService_CPPFLAGS = -g -O0
 
 GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
 GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
-GOLDiProtectionService_LDFLAGS = -g
-GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS
+GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
 
 GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
 GOLDiInitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
-GOLDiInitializationService_LDFLAGS = -g
+GOLDiInitializationService_CPPFLAGS = -g -O0
 
 GOLDiProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)
 GOLDiProgrammingService_LDADD = -lpthread -lsystemd -lbcm2835 -lxsvf
-GOLDiProgrammingService_LDFLAGS = -g
+GOLDiProgrammingService_CPPFLAGS = -g -O0
 
 GOLDiCommandService_SOURCES = CommandService.c $(IPCSockets) $(Utils) $(JSON) $(Logging) $(SensorsActuators) $(SPI)
 GOLDiCommandService_LDADD = -lpthread -lsystemd -lbcm2835 -lcjson
-GOLDiCommandService_LDFLAGS = -g
+GOLDiCommandService_CPPFLAGS = -g -O0
