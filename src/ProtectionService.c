@@ -306,7 +306,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < sensorCount; i++)
                             {
-                                printSensorData(sensors[i]);
+                                //printSensorData(sensors[i]);
                             }
                         }
 
@@ -326,7 +326,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                printActuatorData(incomingActuators[i]);
+                                //printActuatorData(incomingActuators[i]);
                             }
                         }
 
