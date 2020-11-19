@@ -449,9 +449,19 @@ int main(int argc, char const *argv[])
 
     while(1)
     {
+        log_info("waiting for all messages to be read");
         /* Read all IPC Messages and update CurrentActuator */
         while (hasMessages(communicationService));
     
+        if (stoppedPS)
+        {
+            log_info("skipping polling of sensor values");
+        }
+        else
+        {
+            log_info("polling sensor values");
+        }
+
         /* Poll the new sensor values and forward them to communication service if the value changed */
         if (!stoppedPS)
         {
@@ -485,6 +495,15 @@ int main(int argc, char const *argv[])
         }
 
         *actuators = *incomingActuators;
+
+        if (stoppedPS)
+        {
+            log_info("skipping checking of protection");
+        }
+        else
+        {
+            log_info("checking protection");
+        }
 
         if (!stoppedPS)
         {
@@ -565,6 +584,7 @@ int main(int argc, char const *argv[])
             }
 
             /* Send the CurrentActuator values to the FPGA */
+            log_info("sending new actuator values to fpga");
             for (int i = 0; i < actuatorCount; i++)
             {
                 spiAnswer answer;
@@ -585,6 +605,7 @@ int main(int argc, char const *argv[])
     }
     
     /* cleanup */
+    log_info("execution finished, cleaning up");
     for (int i = 0; i < Protectionrules.count; i++)
     {
         destroyBooleanExpression(Protectionrules.rules[i].expression);
