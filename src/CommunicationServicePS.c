@@ -427,8 +427,6 @@ int main(int argc, char const *argv[])
     strcat(fpgaSVFPath, experimentType);
     strcat(fpgaSVFPath, "/");
     strcat(fpgaSVFPath, FPGASVF_FILENAME);
-    char* fpgaSVFContent = readFile(fpgaSVFPath, NULL);
-    free(fpgaSVFPath);
 
     JSON* jsonExperimentConfig = JSONParse(experimentConfigContent);
     free(experimentConfigContent);
@@ -450,8 +448,8 @@ int main(int argc, char const *argv[])
     }
 
     /* program the fpga */
-    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
-    free(fpgaSVFContent);
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFPath, strlen(fpgaSVFPath));
+    free(fpgaSVFPath);
 
     /* initialize Protection Service */
     log_info("initializing Protection Service");

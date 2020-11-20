@@ -359,16 +359,10 @@ int main(int argc, char const *argv[])
     strcat(fpgaSVFPath, experimentType);
     strcat(fpgaSVFPath, "/");
     strcat(fpgaSVFPath, FPGASVF_FILENAME);
-    char* fpgaSVFContent = readFile(fpgaSVFPath, NULL);
-    if (fpgaSVFContent == NULL)
-    {
-        log_error("something went wrong while trying to read the fpga programming file");
-    }
-    free(fpgaSVFPath);
 
     /* program the fpga */
-    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
-    free(fpgaSVFContent);
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFPath, strlen(fpgaSVFPath));
+    free(fpgaSVFPath);
 
     JSON* jsonExperimentConfig = JSONCreateObject();
     JSONAddFalseToObject(jsonExperimentConfig, "PS");
