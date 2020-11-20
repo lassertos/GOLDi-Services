@@ -7,6 +7,11 @@
 char* readFile(char* filename, unsigned int* filesize)
 {
     FILE *f = fopen(filename, "rb");
+    if (f == NULL)
+    {
+        printf("An error has occured while trying to open the file!\n");
+        return NULL;
+    }
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
