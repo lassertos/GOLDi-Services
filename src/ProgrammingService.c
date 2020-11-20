@@ -38,7 +38,15 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 {
                     case IPCMSGTYPE_PROGRAMFPGA:
                     {
-                        programFPGA(msg.content);
+                        log_info("starting the programming of the fpga");
+                        if(programFPGA(msg.content))
+                        {
+		                    log_error("programming of fpga unsuccessful");
+                        }
+                        else
+                        {
+		                    log_info("programming of fpga successful");
+                        }
                         break;
                     }
 
