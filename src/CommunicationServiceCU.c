@@ -351,8 +351,10 @@ int main(int argc, char const *argv[])
     }
 
     /* find fpga programming file and read content */ 
+    //TODO rename experiment -> control unit
     char* experimentType = jsonExperimentType->valuestring;
-    char* fpgaSVFPath = malloc(strlen(experimentType) + strlen(experimentType) + strlen(FPGASVF_FILENAME) + 2);
+    char* experimentPath = "/etc/GOLDiServices/controlunits/";
+    char* fpgaSVFPath = malloc(strlen(experimentPath) + strlen(experimentType) + strlen(FPGASVF_FILENAME) + 2);
     strcpy(fpgaSVFPath, "/etc/GOLDiServices/controlunits/");    //TODO create directory with yocto and place files
     strcat(fpgaSVFPath, experimentType);
     strcat(fpgaSVFPath, "/");
@@ -365,11 +367,8 @@ int main(int argc, char const *argv[])
     free(fpgaSVFPath);
 
     /* program the fpga */
-    if (fpgaSVFContent != NULL)
-    {
-        sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
-        free(fpgaSVFContent);
-    }
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
+    free(fpgaSVFContent);
 
     JSON* jsonExperimentConfig = JSONCreateObject();
     JSONAddFalseToObject(jsonExperimentConfig, "PS");
