@@ -9,15 +9,15 @@
 //TODO add signal handler for updates
 
 /* global variables needed for execution */
-static websocketConnection wscLabserver;        // the websocket to the Labserver
-static websocketConnection wscPhysicalSystem;   // the websocket to the Physical System
-static IPCSocketConnection* commandService;     // the IPC-socket to the Command Service
-static IPCSocketConnection* programmingService; // the IPC-socket to the Programming Service
-static JSON* deviceDataJSON;                    // here the DeviceData is kept in JSON-format
-static char* deviceData;                        // here the DeviceData is kept as a string
-static unsigned int deviceID;                   // here we save the DeviceID
-static JSON* experimentInitAck;                 // this is needed to be able to delay the sending of the Ack
-static int initializedProgrammingService = 0;   // indicates whether the ProgrammingService has been initialized successfully 
+static websocketConnection wscLabserver;                // the websocket to the Labserver
+static websocketConnection wscPhysicalSystem;           // the websocket to the Physical System
+static IPCSocketConnection* commandService;             // the IPC-socket to the Command Service
+static IPCSocketConnection* programmingService;         // the IPC-socket to the Programming Service
+static JSON* deviceDataJSON;                            // here the DeviceData is kept in JSON-format
+static char* deviceData;                                // here the DeviceData is kept as a string
+static unsigned int deviceID;                           // here we save the DeviceID
+static JSON* experimentInitAck;                         // this is needed to be able to delay the sending of the Ack
+static volatile int initializedProgrammingService = 0;  // indicates whether the ProgrammingService has been initialized successfully 
 
 /*
  * the sigint handler, can also be used for cleanup after execution 

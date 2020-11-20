@@ -6,7 +6,7 @@
 #include "programmer/goldi-programmer.h"
 #include "logging/log.h"
 
-IPCSocketConnection* communicationService;
+static IPCSocketConnection* communicationService;
 
 /* all possible Control Unit types */
 enum ControlUnitTypes
@@ -33,7 +33,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             if(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_PROGRAMFPGA:
@@ -132,7 +132,9 @@ int main(int argc, char const *argv[])
     int fd = createIPCSocket(PROGRAMMING_SERVICE);
     communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
+    {
         return -1;
+    }
     
     pthread_join(communicationService->thread, NULL);
 

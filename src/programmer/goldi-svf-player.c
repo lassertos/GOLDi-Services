@@ -168,6 +168,8 @@ int programFPGA(char* filepath)
 	if(libxsvf_play(&h, LIBXSVF_MODE_SVF) < 0) {
 		return 0;
 	}
+
+	bcm2835_close();
 	
 	return 1;
 }
