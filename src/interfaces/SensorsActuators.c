@@ -137,11 +137,14 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
 
         const JSON* actuatorCommand = JSONGetObjectItem(jsonActuator, "ActuatorCommand");
         const JSON* actuatorMathExpression = JSONGetObjectItem(jsonActuator, "ActuatorMathExpression");
-        if (actuatorCommand == NULL || actuatorMathExpression == NULL)
+        const JSON* actuatorStopValue = JSONGetObjectItem(jsonActuator, "ActuatorStopValue");
+        if (actuatorCommand == NULL || actuatorMathExpression == NULL || actuatorStopValue == NULL)
         {
             log_error("actuator data incomplete!");
             return NULL;
         }
+
+        actuators[currentIndex].valueDouble = JSONGetNumberValue(actuatorStopValue);
 
         if (JSONIsNull(actuatorMathExpression))
         {
@@ -156,7 +159,6 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount)
         actuators[currentIndex].command.answerLength = JSONGetObjectItem(actuatorCommand, "AnswerLength")->valueint;
         actuators[currentIndex].command.dataLength = JSONGetObjectItem(actuatorCommand, "DataLength")->valueint;
         actuators[currentIndex].command.command = JSONGetObjectItem(actuatorCommand, "Command")->valueint;
-        actuators[currentIndex].valueDouble = (double)JSONGetNumberValue(JSONGetObjectItem(actuatorCommand, "ActuatorStopValue"));
         actuators[currentIndex].stopData = ActuatorValueToSPIData(&actuators[currentIndex]);
 
         #endif
