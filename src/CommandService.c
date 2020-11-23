@@ -148,6 +148,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 {
                     case IPCMSGTYPE_SENSORDATA:
                     {
+                        log_debug("received sensor data message");
                         unsigned int newSensorDataCount = 0;
                         SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
                         for (int i = 0; i < newSensorDataCount; i++)
@@ -163,6 +164,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     
                     case IPCMSGTYPE_INITCOMMANDSERVICE:
                     {
+                        log_debug("received initialization message");
                         //TODO check for NULL?
                         JSON* msgJSON = JSONParse(msg.content);
                         if (msgJSON == NULL)
@@ -253,6 +255,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_DELAYBASEDFAULT:
                     {
+                        log_debug("received delay fault message");
                         JSON* msgJSON = JSONParse(msg.content);
                         JSON* sensorDataPacketsJSON = JSONGetObjectItem(msgJSON, "SensorData");
                         char* stringSensorDataPackets = JSONPrint(sensorDataPacketsJSON);
@@ -297,6 +300,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_PROGRAMCONTROLUNIT:
                     {
+                        log_debug("received program control unit message");
                         stopped = 1;
                         JSON* msgJSON = JSONCreateObject();
                         JSON* actuatorDataJSON = JSONAddArrayToObject(msgJSON, "ActuatorData");
@@ -324,12 +328,14 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED:
                     {
+                        log_debug("received program control unit finished message");
                         stopped = 0;
                         break;
                     }
 
                     case IPCMSGTYPE_ENDEXPERIMENT:
                     {
+                        log_debug("received end experiment message");
                         initialized = 0;
                         destroySensors(sensors, sensorCount);
                         destroyActuators(actuators, actuatorCount);
@@ -356,6 +362,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received message of unknown type");
                         break;
                     }
                 }

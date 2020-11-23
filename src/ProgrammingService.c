@@ -33,7 +33,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             if(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_PROGRAMFPGA:
@@ -52,6 +52,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_PROGRAMCONTROLUNIT:
                     {
+                        log_info("programming control unit");
                         int result = 1;
                         switch(cuType)
                         {
@@ -85,6 +86,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_INITPROGRAMMINGSERVICE:
                     {
+                        log_info("initializing and sending result");
                         int result = 0;
                         if (!strcmp(msg.content, "MicroController"))
                         {
@@ -122,6 +124,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received message of unknown type");
                         break;
                     }
                 }

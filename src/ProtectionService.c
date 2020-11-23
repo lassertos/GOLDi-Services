@@ -180,6 +180,7 @@ int parseProtectionRules(char *protectionString)
 /* used to start the physical system */
 static void startPhysicalSystem(void)
 {
+    log_info("physical system started");
     //TODO maybe add check for protectionrules
     stoppedPS = 0;
 }
@@ -187,6 +188,7 @@ static void startPhysicalSystem(void)
 /* used to stop the physical system */
 static void stopPhysicalSystem(void)
 {
+    log_info("physical system stopped");
     stoppedPS = 1;
     for (int i = 0; i < actuatorCount; i++)
     {
@@ -208,10 +210,12 @@ static void handleDelayBasedFault(DelayBasedFault* fault)
         usleep(100);
         if (!evaluateBooleanExpression(fault->rule->expression))
         {
+            log_debug("delay based fault resolved");
             fault->isActive = 0;
             return;
         }
     }
+    log_error("delay based error occured, sending message");
     fault->isActive = 0;
     JSON* delayBasedErrorJSON = JSONCreateObject();
     JSONAddNumberToObject(delayBasedErrorJSON, "ErrorCode", fault->rule->errorCode);
@@ -333,7 +337,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                printActuatorData(actuators[i]);
+                                //printActuatorData(actuators[i]);
                             }
                         }
 
@@ -379,6 +383,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_SETUSERVARIABLE:
                     {
+                        log_debug("received new value for user variable");
                         //TODO maybe rename variables as these are still the names of the old system and maybe change their content too
                         JSON* msgJSON = JSONParse(msg.content);
                         unsigned int userVariable = JSONGetObjectItem(msgJSON, "Variable")->valueint;   //the index of the virtual sensor (looking only at the virtual sensors)
@@ -402,6 +407,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_ACTUATORDATA:
                     {
+                        log_debug("received new actuator data");
                         unsigned int newActuatorDataCount = 0;
                         ActuatorDataPacket* actuatorDataPackets = parseActuatorDataPackets(msg.content, msg.length, &newActuatorDataCount);
                         if (actuatorDataPackets == NULL)
@@ -424,22 +430,26 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_RUNPHYSICALSYSTEM:
                     {
+                        log_debug("received start signal for physical system");
                         startPhysicalSystem();
                         break;
                     }
 
                     case IPCMSGTYPE_STOPPHYSICALSYSTEM:
                     {
+                        log_debug("received stop signal for physical system");
                         stopPhysicalSystem();
                         break;
                     }
 
                     case IPCMSGTYPE_EXPERIMENTINIT:
                     {
+                        log_debug("received initialization message for experiment");
                         JSON* msgJSON = JSONParse(msg.content);
                         JSON* packetsJSON = JSONCreateArray();
                         SensorDataPacket* packets = malloc(sizeof(*packets)*sensorCount);
 
+                        log_debug("preparing sensor data packets");
                         for (int i = 0; i < sensorCount; i++)
                         {
                             packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].value};
@@ -449,6 +459,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         free(packets);
                         JSONAddItemToObject(msgJSON, "SensorData", packetsJSON);
                         
+                        log_debug("sending result of experiment initialization");
                         char* message = JSONPrint(msgJSON);
                         sendMessageIPC(communicationService, IPCMSGTYPE_EXPERIMENTINIT, message, strlen(message));
                         free(message);
@@ -477,6 +488,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received message of unknown type");
                         break;
                     }
                 }
@@ -497,6 +509,7 @@ int main(int argc, char const *argv[])
 
     if (setupSPIInterface())
     {
+        log_error("spi interface could not be started successfully");
         return -1;
     }
 
@@ -504,7 +517,7 @@ int main(int argc, char const *argv[])
     communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
-        printf("Connection to Communication Service could not be established!\n");
+        log_error("connection to Communication Service could not be established!\n");
         return -1;
     }
 
@@ -515,15 +528,6 @@ int main(int argc, char const *argv[])
         log_info("waiting for all messages to be read");
         /* Read all IPC Messages and update CurrentActuator */
         while (hasMessages(communicationService));
-    
-        if (stoppedPS)
-        {
-            log_info("skipping polling of sensor values");
-        }
-        else
-        {
-            log_info("polling sensor values");
-        }
 
         /* Poll the new sensor values and forward them to communication service if the value changed */
         if (!stoppedPS)
@@ -562,15 +566,6 @@ int main(int argc, char const *argv[])
             actuators[i] = incomingActuators[i];
         }
 
-        if (stoppedPS)
-        {
-            log_info("skipping checking of protection");
-        }
-        else
-        {
-            log_info("checking protection");
-        }
-
         if (!stoppedPS)
         {
             /* Check the Protection rules */
@@ -586,6 +581,7 @@ int main(int argc, char const *argv[])
                     {
                         case DELAY_ERROR:
                         {
+                            log_error("delay based fault occurred");
                             for (int j = 0; j < delayBasedFaults.maxCount; j++)
                             {
                                 if (delayBasedFaults.faults[j].rule->errorCode == Protectionrules.rules[i].errorCode)
@@ -596,12 +592,14 @@ int main(int argc, char const *argv[])
                                     }
                                     else
                                     {
+                                        log_debug("creating thread for monitoring delay fault");
                                         pthread_create(&delayBasedFaults.faults[j].thread, NULL, &handleDelayBasedFault, &delayBasedFaults.faults[j]);
                                         pthread_detach(delayBasedFaults.faults[j].thread);
                                     }
                                 }
                             }
 
+                            log_debug("creating and sending delay fault message with current sensor data");
                             JSON* delayFaultMsgJSON = JSONCreateObject();
                             JSONAddNumberToObject(delayFaultMsgJSON, "FaultID", Protectionrules.rules[i].errorCode);
                             JSON* sensorDataJSON = JSONCreateArray();
@@ -621,6 +619,7 @@ int main(int argc, char const *argv[])
 
                         case USER_ERROR:
                         {
+                            log_error("user based error occurred, sending message");
                             JSON* userBasedErrorJSON = JSONCreateObject();
                             JSONAddNumberToObject(userBasedErrorJSON, "ErrorCode", Protectionrules.rules[i].errorCode);
                             char* userBasedError = JSONPrint(userBasedErrorJSON);
@@ -632,6 +631,7 @@ int main(int argc, char const *argv[])
 
                         case INFRASTRUCTURE_ERROR:
                         {
+                            log_error("infrastructure based error occurred, sending message");
                             JSON* infrastructureBasedErrorJSON = JSONCreateObject();
                             JSONAddNumberToObject(infrastructureBasedErrorJSON, "ErrorCode", Protectionrules.rules[i].errorCode);
                             char* infrastructureBasedError = JSONPrint(infrastructureBasedErrorJSON);
@@ -650,15 +650,9 @@ int main(int argc, char const *argv[])
             }
 
             /* Send the CurrentActuator values to the FPGA */
-            log_info("sending new actuator values to fpga");
             for (int i = 0; i < actuatorCount; i++)
             {
                 spiAnswer answer;
-                if (stoppedPS)
-                {
-                    log_info("stopping sending of actuator values to fpga");
-                    break;
-                }
                 //TODO update once spi changes have been made
                 char* data = ActuatorValueToSPIData(&actuators[i]);
                 char* completeData = malloc(SPICOMMAND_WRITE_GPIO.dataLength);

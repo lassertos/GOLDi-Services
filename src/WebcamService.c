@@ -47,6 +47,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 {
                     case IPCMSGTYPE_INITWEBCAMSERVICE:
                     {
+                        log_debug("received initialization message");
                         JSON* msgJSON = JSONParse(msg.content);
                         JSON* cameraTypeJSON = JSONGetObjectItem(msgJSON, "Type");
                         JSON* cameraAddressJSON = JSONGetObjectItem(msgJSON, "Address");
@@ -71,12 +72,14 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_STARTEXPERIMENT:
                     {
+                        log_debug("received start experiment message");
                         CameraData.active = 1;
                         break;
                     }
 
                     case IPCMSGTYPE_STOPEXPERIMENT:
                     {
+                        log_debug("received stop experiment message");
                         CameraData.active = 0;
                         break;
                     }
@@ -103,6 +106,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received message of unknown type");
                         break;
                     }
                 }
@@ -116,6 +120,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
     }
 }
 
+//TODO maybe delete if it causes problems
 static int handleWebsocketMessage(struct lws* wsi, char* message)
 {
     int result = 0;
@@ -145,12 +150,12 @@ int main(int argc, char const *argv[])
     communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
-        printf("Connection to Communication Service could not be established!\n");
+        log_error("connection to Communication Service could not be established");
         return -1;
     }
 
     /* Websocket creation */
-    if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_WEBCAMPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }

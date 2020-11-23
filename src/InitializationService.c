@@ -68,22 +68,66 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             if(hasMessages(ipcsc))
             {
                 Message msg = receiveMessageIPC(ipcsc);
-                log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
                     case IPCMSGTYPE_INITINITIALIZATION:
                     {
+                        log_debug("initialization: starting initialization");
                         JSON* msgJSON = JSONParse(msg.content);
+                        if (msgJSON == NULL)
+                        {
+                            log_error("initialization: IPC message could not be parsed to JSON");
+                            break;
+                        }
+                        log_debug("initialization: parsing sensors as json from message json");
                         JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
+                        if (sensorsJSON == NULL)
+                        {
+                            log_error("initialization: sensors not included in message json");
+                            break;
+                        }
+                        log_debug("initialization: parsing actuators as json from message json");
                         JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
+                        if (actuatorsJSON == NULL)
+                        {
+                            log_error("initialization: actuators not included in message json");
+                            break;
+                        }
+                        log_debug("initialization: parsing initializers as json from message json");
                         JSON* initializersJSON = JSONGetObjectItem(msgJSON, "Initializers");
+                        if (initializersJSON == NULL)
+                        {
+                            log_error("initialization: initializers not included in message json");
+                            break;
+                        }
+                        log_debug("initialization: converting sensors json to string");
                         char* stringSensors = JSONPrint(sensorsJSON);
+                        if (stringSensors == NULL)
+                        {
+                            log_error("initialization: sensors json could not be parsed to string");
+                            break;
+                        }
+                        log_debug("initialization: converting actuators json to string");
                         char* stringActuators = JSONPrint(actuatorsJSON);
+                        if (stringActuators == NULL)
+                        {
+                            log_error("initialization: actuators json could not be parsed to string");
+                            break;
+                        }
+                        log_debug("initialization: converting initializers json to string");
                         char* stringInitializers = JSONPrint(initializersJSON);
+                        if (stringInitializers == NULL)
+                        {
+                            log_error("initialization: initializers json could not be parsed to string");
+                            break;
+                        }
 
+                        log_debug("initialization: parsing sensors");
                         sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
                         if (sensors == NULL)
                         {
+                            log_error("initialization: sensors could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
@@ -94,14 +138,16 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             variables = malloc(sizeof(*variables) * sensorCount);
                             for (int i = 0; i < sensorCount; i++)
                             {
-                                printSensorData(sensors[i]);
+                                //printSensorData(sensors[i]);
                                 variables[i] = (Variable){sensors[i].sensorID, &sensors[i].value};
                             }
                         }
 
+                        log_debug("initialization: parsing actuators");
                         actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
                         if (actuators == NULL)
                         {
+                            log_error("initialization: actuators could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
@@ -111,13 +157,15 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                printActuatorData(actuators[i]);
+                                //printActuatorData(actuators[i]);
                             }
                         }
 
+                        log_debug("initialization: parsing state machines of initializers");
                         stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount, &stateMachineCount);
                         if (stateMachines == NULL)
                         {
+                            log_error("initialization: state machines of initializers could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
@@ -127,10 +175,11 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < stateMachineCount; i++)
                             {
-                                printStateMachineInfo(&stateMachines[i]);
+                                //printStateMachineInfo(&stateMachines[i]);
                             }
                         }
 
+                        log_debug("initialization: sending result to Communication Service");
                         char* result = serializeInt(1);
                         sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                         free(result);
@@ -144,6 +193,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_SENSORDATA:
                     {
+                        log_debug("receiving new sensor data");
                         unsigned int newSensorDataCount = 0;
                         SensorDataPacket* sensorDataPackets = parseActuatorDataPackets(msg.content, msg.length, &newSensorDataCount);
                         if (sensorDataPackets == NULL)
@@ -166,6 +216,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_STARTINITIALIZATION:
                     {
+                        log_debug("starting initialization of physical system");
                         execution.stopped = 0;
                         execution.stateMachine = &stateMachines[msg.content[0]];
                         pthread_t initializationThread;
@@ -175,6 +226,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_STOPINITIALIZATION:
                     {
+                        log_debug("stopping initialization of physical system");
                         execution.stopped = 1;
                         break;
                     }
@@ -199,6 +251,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received message of unknown type");
                         break;
                     }
                 }
@@ -218,7 +271,7 @@ int main(int argc, char const *argv[])
     communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
     if (communicationService == NULL)
     {
-        printf("Connection to Communication Service could not be established!\n");
+        log_error("connection to Communication Service could not be established!\n");
         return -1;
     }
     

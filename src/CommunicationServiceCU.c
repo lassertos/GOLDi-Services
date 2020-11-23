@@ -57,6 +57,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* initialize the Command Service with the received experiment data (after initialization send ExperimentInitAck) */
         case WebsocketCommandExperimentData:
         {
+            log_debug("received experiment data message from labserver");
             JSONDeleteItemFromObject(msgJSON, "Command");
             JSONDeleteItemFromObject(msgJSON, "SenderID");
             char* experimentData = JSONPrint(msgJSON);
@@ -68,6 +69,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* start init and wait for experiment data */
         case WebsocketCommandExperimentInit:
         {
+            log_debug("received experiment initialization message from labserver");
             /* initializing experiment init ack for later use (when command service initialization finished) */
             int experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valueint;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
@@ -89,6 +91,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* close connection to physical system if created, stop sending data and send ExperimentCloseAck */
         case WebsocketCommandExperimentClose:
         {
+            log_debug("received experiment close message from labserver");
             wscPhysicalSystem.interrupted = 1;
             pthread_join(wscPhysicalSystem.thread, NULL);
             JSON* experimentCloseAckJSON = JSONCreateObject();
@@ -104,6 +107,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* sent by the Physical System if a delay fault has been detected */
         case WebsocketCommandDelayFault:
         {
+            log_debug("received delay fault message from physical system");
             JSONDeleteItemFromObject(msgJSON, "SenderID");
             JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
             JSONDeleteItemFromObject(msgJSON, "Command");
@@ -117,6 +121,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* used to reset the control unit */
         case WebsocketCommandResetCU:
         {
+            log_debug("received reset control unit message from labserver");
             //TODO add implementation
             break;
         }
@@ -124,6 +129,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* forward to Command Service */
         case WebsocketCommandSensorData:
         {
+            log_debug("received sensor data message from physical system");
             JSON* sensorDataJSON = JSONGetObjectItem(msgJSON, "SensorData");
             char* sensorData = JSONPrint(sensorDataJSON);
             sendMessageIPC(commandService, IPCMSGTYPE_SENSORDATA, sensorData, strlen(sensorData));
@@ -134,6 +140,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* used to send the programming file as a base64 encoded string, decode, send to Programming Service and send ack*/
         case WebsocketCommandProgramCU:
         {
+            log_debug("received program control unit message from labserver");
             unsigned int length = 0;
             char* programData = decodeBase64(JSONGetObjectItem(msgJSON, "File")->valuestring, &length);
             FILE *write_ptr = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile","wb");
@@ -146,6 +153,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* try to connect to Physical System and send ack with outcome accordingly */
         case WebsocketCommandDirectConnectionInit:
         {
+            log_debug("received direct connection initialization message from labserver");
             JSON* directConnectionAckJSON = JSONCreateObject();
             JSONAddNumberToObject(directConnectionAckJSON, "Command", WebsocketCommandDirectConnectionAck);
             char* subnetPS = JSONGetObjectItem(JSONGetObjectItem(deviceDataJSON, "Network"), "Subnet")->valuestring;
@@ -173,6 +181,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             
         default:
         {
+            log_error("received websocket message of unknown type");
             result = -1;
             break;
         }
@@ -197,6 +206,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 {
                     case IPCMSGTYPE_ACTUATORDATA:
                     {
+                        log_debug("received actuator data message from Command Service");
                         JSON* msgJSON = JSONParse(msg.content);
 
                         JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
@@ -219,6 +229,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_INITCOMMANDSERVICEFINISHED:
                     {
+                        log_debug("received initialization finished message from Command Service");
                         if (msg.length == 0)
                         {
                             // an error has occured TODO error handling
@@ -242,6 +253,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED:
                     {
+                        log_debug("received initialization finished message from Programming Service");
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
@@ -256,6 +268,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_DELAYBASEDFAULTACK:
                     {
+                        log_debug("received delay fault ack message from Command Service");
                         if (wscPhysicalSystem.connectionEstablished && !wscPhysicalSystem.interrupted)
                         {
                             sendMessageWebsocket(wscPhysicalSystem.wsi, msg.content);
@@ -269,6 +282,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED:
                     {
+                        log_debug("received programming control unit finished message from Programming Service");
                         //TODO check that result values of programming functions are the same, seems like 0 = success
                         int result = deserializeInt(msg.content);
                         sendMessageIPC(commandService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, NULL, 0); //send only if programming successful
@@ -295,6 +309,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     default:
                     {
+                        log_error("received IPC message of unknown type");
                         break;
                     }
                 }
