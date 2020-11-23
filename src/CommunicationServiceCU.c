@@ -370,7 +370,7 @@ int main(int argc, char const *argv[])
     char* experimentType = jsonExperimentType->valuestring;
     char* experimentPath = "/etc/GOLDiServices/controlunits/";
     char* fpgaSVFPath = malloc(strlen(experimentPath) + strlen(experimentType) + strlen(FPGASVF_FILENAME) + 2);
-    strcpy(fpgaSVFPath, "/etc/GOLDiServices/controlunits/");    //TODO create directory with yocto and place files
+    strcpy(fpgaSVFPath, "/etc/GOLDiServices/controlunits/");
     strcat(fpgaSVFPath, experimentType);
     strcat(fpgaSVFPath, "/");
     strcat(fpgaSVFPath, FPGASVF_FILENAME);
