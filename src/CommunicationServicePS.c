@@ -206,9 +206,22 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
                 switch (msg.type)
                 {
+                    case IPCMSGTYPE_ACTUATORDATA:
+                    {
+                        log_debug("received new actuator data from Initialization Service");
+                        sendMessageIPC(protectionService, IPCMSGTYPE_ACTUATORDATA, msg.content, msg.length);
+                        break;
+                    }
+
                     case IPCMSGTYPE_SENSORDATA:
                     {
                         log_debug("received new sensor data from Protection Service");
+
+                        if (initializingPS)
+                        {
+                            sendMessageIPC(initializationService, IPCMSGTYPE_SENSORDATA, msg.content, msg.length);
+                        }
+
                         JSON* msgJSON = JSONParse(msg.content);
 
                         JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
@@ -226,6 +239,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         free(message);
                         JSONDelete(msgJSON);
+                        break;
                     }
 
                     case IPCMSGTYPE_DELAYBASEDFAULT:

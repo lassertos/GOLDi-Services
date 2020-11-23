@@ -61,7 +61,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 rename(PROGRAMMINGFILE_GENERIC, PROGRAMMINGFILE_MICROCONTROLLER);
                                 int result = programControlUnitMicrocontroller(PROGRAMMINGFILE_MICROCONTROLLER);
                                 char* resultString = serializeInt(result);
-                                sendMessageIPC(communicationService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
+                                sendMessageIPC(ipcsc, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
                                 free(resultString);
                                 break;
                             }
@@ -71,7 +71,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 rename(PROGRAMMINGFILE_GENERIC, PROGRAMMINGFILE_PLD);
                                 int result = programFPGA(PROGRAMMINGFILE_PLD);
                                 char* resultString = serializeInt(result);
-                                sendMessageIPC(communicationService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
+                                sendMessageIPC(ipcsc, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
                                 free(resultString);
                                 break;
                             }
@@ -99,7 +99,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             result = 1;
                         }
                         char* resultString = serializeInt(result);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED, resultString, 4);
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITPROGRAMMINGSERVICEFINISHED, resultString, 4);
                         free(resultString);
                         break;
                     }

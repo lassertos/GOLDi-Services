@@ -66,7 +66,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         JSONDelete(msgJSON);
                         ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
                         sprintf(ffmpegCommand, ffmpegCommandBlueprint, CameraData.device, CameraData.address);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
                         break;
                     }
 

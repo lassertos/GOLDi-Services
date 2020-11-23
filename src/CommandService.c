@@ -195,7 +195,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         free(stringSensors);
                         if (sensors == NULL)
                         {
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
                         }
 
                         /* initialize actuators object */
@@ -204,7 +204,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         free(stringActuators);
                         if (actuators == NULL)
                         {
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
                         }
 
                         /* initialize sensor values */
@@ -215,7 +215,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         if (sensorCount != sensorDataPacketsCount)
                         {
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
                         }
 
                         for (int i = 0; i < sensorCount; i++)
@@ -244,7 +244,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
                         
                         char* finishedMessage = JSONPrint(msgJSON);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, finishedMessage, strlen(finishedMessage));
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, finishedMessage, strlen(finishedMessage));
 
                         initialized = 1;
 
@@ -291,7 +291,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
 
                         char* messageDelayFaultAck = JSONPrint(msgJSON);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_DELAYBASEDFAULTACK, messageDelayFaultAck, strlen(messageDelayFaultAck));
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_DELAYBASEDFAULTACK, messageDelayFaultAck, strlen(messageDelayFaultAck));
 
                         free(messageDelayFaultAck);
                         JSONDelete(msgJSON);
@@ -318,7 +318,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
 
                         char* message = JSONPrint(msgJSON);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
                         
                         free(packets);
                         free(message);

@@ -129,7 +129,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             log_error("initialization: sensors could not be parsed successfully");
                             char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
                             break;
                         }
@@ -149,7 +149,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             log_error("initialization: actuators could not be parsed successfully");
                             char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
                             break;
                         }
@@ -167,7 +167,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             log_error("initialization: state machines of initializers could not be parsed successfully");
                             char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                             free(result);
                             break;
                         }
@@ -181,7 +181,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         log_debug("initialization: sending result to Communication Service");
                         char* result = serializeInt(1);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                         free(result);
 
                         JSONDelete(msgJSON);
