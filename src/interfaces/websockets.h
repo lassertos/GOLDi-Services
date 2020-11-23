@@ -8,7 +8,7 @@
 #include <pthread.h>
 
 //TODO change to real values
-#define GOLDi_SERVERADDRESS "eichenberg.synology.me"
+#define GOLDi_SERVERADDRESS "87.133.81.115"
 #define GOLDi_SERVERPORT 8083
 #define GOLDi_WEBCAMPORT 8084
 
