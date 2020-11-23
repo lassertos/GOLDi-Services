@@ -385,6 +385,7 @@ int main(int argc, char const *argv[])
 
     JSONDeleteItemFromObject(deviceDataJSON, "ExperimentType");
     JSONAddItemToObject(deviceDataJSON, "Experiment", jsonExperimentConfig);
+    JSONAddNumberToObject(deviceDataJSON, "Command", WebsocketCommandDeviceData);
 
     deviceData = JSONPrint(deviceDataJSON);
     sendMessageWebsocket(wscLabserver.wsi, deviceData);
