@@ -3,7 +3,7 @@
 /*
  *  The retry and backoff policy we want to use for our client connections
  */
-static const uint32_t backoff_ms[] = { 100000, 200000, 300000, 400000, 500000 };
+static const uint32_t backoff_ms[] = { 1000, 2000, 3000, 4000, 5000 };
 
 static const lws_retry_bo_t retry = {
 	.retry_ms_table			    = backoff_ms,
