@@ -40,9 +40,18 @@ static void sigint_handler(int sig)
 
 static int handleWebsocketMessage(struct lws* wsi, char* message)
 {
+    log_debug("entered websocket message handler");
     int result = 0;
     JSON* msgJSON = JSONParse(message);
+    if (msgJSON != NULL)
+    {
+        log_debug("parsed websocket message to json successfully");
+    }
     JSON* msgCommand = JSONGetObjectItem(msgJSON, "Command");
+    if (msgCommand != NULL)
+    {
+        log_debug("parsed command from websocket message json successfully");
+    }
 
     switch (msgCommand->valueint)
     {

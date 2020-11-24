@@ -164,6 +164,7 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 			break;
 
 		case LWS_CALLBACK_RECEIVE:
+			log_debug("received websocket message");
 			message = malloc(len + 1);
 			memcpy(message, (char*)in, len);
 			message[len] = '\0';
@@ -177,6 +178,7 @@ int callback_communication(struct lws *wsi, enum lws_callback_reasons reason,
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:
+			log_debug("received websocket message");
 			message = malloc(len + 1);
 			memcpy(message, (char*)in, len);
 			message[len] = '\0';
