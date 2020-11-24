@@ -1,4 +1,5 @@
 #include "websockets.h"
+#include "../logging/log.h"
 
 /*
  *  The retry and backoff policy we want to use for our client connections
