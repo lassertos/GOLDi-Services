@@ -104,6 +104,17 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             {
                 JSONAddTrueToObject(experimentInitAck, "virtualPartner");
             }
+            if (experimentInitAck == NULL)
+            {
+                log_error("error with experiment init ack json");
+            }
+            else
+            {
+                char* initackstring = JSONPrint(experimentInitAck);
+                log_debug("experiment init ack: %s", initackstring);
+                free(initackstring);
+            }
+            
             break;
         }
 
