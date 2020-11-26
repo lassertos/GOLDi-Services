@@ -47,10 +47,18 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     {
         log_debug("parsed websocket message to json successfully");
     }
+    else 
+    {
+        log_debug("parsing websocket message to json failed");
+    }
     JSON* msgCommand = JSONGetObjectItem(msgJSON, "Command");
     if (msgCommand != NULL)
     {
         log_debug("parsed command from websocket message json successfully");
+    }
+    else 
+    {
+        log_debug("parsing command from websocket message json failed");
     }
 
     switch (msgCommand->valueint)
@@ -364,7 +372,7 @@ int main(int argc, char const *argv[])
     JSON* jsonExperimentType = JSONGetObjectItem(deviceDataJSON, "ExperimentType");
     sendMessageIPC(programmingService, IPCMSGTYPE_INITPROGRAMMINGSERVICE, jsonExperimentType->valuestring, strlen(jsonExperimentType->valuestring));
 
-    while (!initializedProgrammingService > 0)
+    while (initializedProgrammingService <= 0)
     {
         if (initializedProgrammingService == -1)
         {
