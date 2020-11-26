@@ -183,6 +183,8 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             fwrite(programData, 1, length, write_ptr2);
             FILE *write_ptr3 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile3","wb");
             fwrite(programData, length, 1, write_ptr3);
+            FILE *write_ptr4 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile4","wb");
+            fwrite(programData, sizeof(programData), 1, write_ptr4);
             sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
             sendMessageIPC(commandService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
             break;
