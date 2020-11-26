@@ -175,6 +175,8 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             log_debug("received program control unit message from labserver");
             unsigned int length = 0;
             char* programData = decodeBase64(JSONGetObjectItem(msgJSON, "File")->valuestring, &length);
+            log_debug("value of programming file: %s", JSONGetObjectItem(msgJSON, "File")->valuestring);
+            log_debug("length of decoded string: %d", length);
             FILE *write_ptr = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile","wb");
             fwrite(programData, 1, length, write_ptr);
             sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);

@@ -306,6 +306,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     {
                         log_debug("received program control unit message");
                         stopped = 1;
+                        //TODO maybe useless
                         JSON* msgJSON = JSONCreateObject();
                         JSON* actuatorDataJSON = JSONAddArrayToObject(msgJSON, "ActuatorData");
                         ActuatorDataPacket* packets = malloc(sizeof(*packets) * actuatorCount);
