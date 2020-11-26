@@ -208,25 +208,28 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
 
                         /* initialize sensor values */
-                        char* stringSensorValues = JSONPrint(sensorValuesJSON);
-                        unsigned int sensorDataPacketsCount = 0;
-                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorValues, strlen(stringSensorValues), &sensorDataPacketsCount); 
-                        free(stringSensorValues);
-
-                        if (sensorCount != sensorDataPacketsCount)
+                        if (!JSONIsNull(sensorValuesJSON))
                         {
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
-                        }
+                            char* stringSensorValues = JSONPrint(sensorValuesJSON);
+                            unsigned int sensorDataPacketsCount = 0;
+                            SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorValues, strlen(stringSensorValues), &sensorDataPacketsCount); 
+                            free(stringSensorValues);
 
-                        for (int i = 0; i < sensorCount; i++)
-                        {
-                            Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
-                            sensor->value = sensorDataPackets[i].value;
-                            free(sensorDataPackets[i].sensorID);
-                            sendSensorValue(sensor);
-                        }
+                            if (sensorCount != sensorDataPacketsCount)
+                            {
+                                sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                            }
 
-                        free(sensorDataPackets);
+                            for (int i = 0; i < sensorCount; i++)
+                            {
+                                Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
+                                sensor->value = sensorDataPackets[i].value;
+                                free(sensorDataPackets[i].sensorID);
+                                sendSensorValue(sensor);
+                            }
+
+                            free(sensorDataPackets);
+                        }
 
                         /* prepare and send initialization finished message */
                         JSONDeleteItemFromObject(msgJSON, "Experiment");
