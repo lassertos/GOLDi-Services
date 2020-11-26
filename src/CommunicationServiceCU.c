@@ -51,6 +51,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     {
         log_debug("parsing websocket message to json failed");
         log_debug("message: %s", message);
+        sleep(5);
     }
     JSON* msgCommand = JSONGetObjectItem(msgJSON, "Command");
     if (msgCommand != NULL)
