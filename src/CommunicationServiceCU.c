@@ -267,7 +267,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
                         else
                         {
-                            log_error("the Command Service was initialized correctly");
+                            log_debug("the Command Service was initialized correctly");
                             JSON* msgJSON = JSONParse(msg.content);
                             if (msgJSON == NULL)
                             {
@@ -284,7 +284,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             }
                             JSONAddNullToObject(experimentInitAck, "Experiment");
                             JSONAddNullToObject(experimentInitAck, "SensorData");
-                            JSONAddItemToObject(experimentInitAck, "ActuatorData", actuatorDataJSON);
+                            JSONAddItemReferenceToObject(experimentInitAck, "ActuatorData", actuatorDataJSON);
                             char* message = JSONPrint(experimentInitAck);
                             sendMessageWebsocket(wscLabserver.wsi, message);
                             JSONDelete(msgJSON);
