@@ -179,6 +179,10 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             log_debug("length of decoded string: %d", length);
             FILE *write_ptr = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile","wb");
             fwrite(programData, 1, length, write_ptr);
+            FILE *write_ptr2 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile2","wb");
+            fwrite(programData, 1, length, write_ptr2);
+            FILE *write_ptr3 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile3","wb");
+            fwrite(programData, length, 1, write_ptr3);
             sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
             sendMessageIPC(commandService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
             break;
