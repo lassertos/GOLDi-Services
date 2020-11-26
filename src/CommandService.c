@@ -407,16 +407,19 @@ int main(int argc, char const *argv[])
             unsigned int packetcount = 0;
             ActuatorDataPacket* packets = retrieveActuatorValues(&packetcount);
 
-            for(int i = 0; i < packetcount; i++)
+            if (packetcount > 0)
             {
-                JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packets[i]));
+                for(int i = 0; i < packetcount; i++)
+                {
+                    JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packets[i]));
+                }
+
+                char* message = JSONPrint(msgJSON);
+                sendMessageIPC(communicationService, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
+                free(message);
+                free(packets);
             }
 
-            char* message = JSONPrint(msgJSON);
-            sendMessageIPC(communicationService, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
-            
-            free(packets);
-            free(message);
             JSONDelete(msgJSON);
         }
     }
