@@ -92,16 +92,12 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             /* initializing experiment init ack for later use (when command service initialization finished) */
             JSON* experimentDataJSON = JSONGetObjectItem(msgJSON, "data");
             JSON* experimentIDJSON = JSONGetObjectItem(experimentDataJSON, "ExperimentID");
-            if (!JSONIsNumber(experimentIDJSON))
-            {
-                log_error("experiment id json is not a number");
-            }
-            int experimentID = experimentIDJSON->valueint;
+            char* experimentID = experimentIDJSON->valuestring;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
             experimentInitAck = JSONCreateObject();
             JSONAddNumberToObject(experimentInitAck, "SenderID", JSONGetObjectItem(deviceDataJSON, "DeviceID")->valueint);
             JSONAddNumberToObject(experimentInitAck, "Command", WebsocketCommandExperimentInitAck);
-            JSONAddNumberToObject(experimentInitAck, "ExperimentID", experimentID);
+            JSONAddStringToObject(experimentInitAck, "ExperimentID", experimentID);
             if (virtualPartner == 0)
             {
                 JSONAddFalseToObject(experimentInitAck, "virtualPartner");
