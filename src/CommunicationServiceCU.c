@@ -172,6 +172,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* used to send the programming file as a base64 encoded string, decode, send to Programming Service and send ack*/
         case WebsocketCommandProgramCU:
         {
+            //TODO
             log_debug("received program control unit message from labserver");
             unsigned int length = 0;
             char* programData = decodeBase64(JSONGetObjectItem(msgJSON, "File")->valuestring, &length);
@@ -179,6 +180,8 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             log_debug("length of decoded string: %d", length);
             FILE *write_ptr = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile","wb");
             fwrite(programData, 1, length, write_ptr);
+            FILE *write_ptr5 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile5","wb");
+            fwrite("HELLO WORLD", 1, strlen("HELLO WORLD"), write_ptr5);
             FILE *write_ptr2 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile2","wb");
             fwrite(programData, 1, length, write_ptr2);
             FILE *write_ptr3 = fopen("/tmp/GOLDiServices/ProgrammingService/programmingfile3","wb");
