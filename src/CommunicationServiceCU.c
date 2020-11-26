@@ -50,6 +50,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     else 
     {
         log_debug("parsing websocket message to json failed");
+        log_debug("messageLength: %d", strlen(message));
         log_debug("message: %s", message);
         sleep(5);
     }
