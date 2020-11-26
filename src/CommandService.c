@@ -248,6 +248,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         
                         char* finishedMessage = JSONPrint(msgJSON);
                         sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, finishedMessage, strlen(finishedMessage));
+                        free(finishedMessage);
 
                         initialized = 1;
 

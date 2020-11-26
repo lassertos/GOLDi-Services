@@ -52,7 +52,6 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         log_debug("parsing websocket message to json failed");
         log_debug("messageLength: %d", strlen(message));
         log_debug("message: %s", message);
-        sleep(5);
     }
     JSON* msgCommand = JSONGetObjectItem(msgJSON, "Command");
     if (msgCommand != NULL)
@@ -257,8 +256,21 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
                         else
                         {
+                            log_error("the Command Service was initialized correctly");
                             JSON* msgJSON = JSONParse(msg.content);
+                            if (msgJSON == NULL)
+                            {
+                                log_error("could not parse initialization response from Command Service to json");
+                            }
                             JSON* actuatorDataJSON = JSONGetObjectItem(msgJSON, "ActuatorData");
+                            if (actuatorDataJSON == NULL)
+                            {
+                                log_error("could not grab actuatordata from initialization response json of Command Service");
+                            }
+                            if (experimentInitAck == NULL)
+                            {
+                                log_error("error with experiment init ack json");
+                            }
                             JSONAddNullToObject(experimentInitAck, "Experiment");
                             JSONAddNullToObject(experimentInitAck, "SensorData");
                             JSONAddItemToObject(experimentInitAck, "ActuatorData", actuatorDataJSON);
