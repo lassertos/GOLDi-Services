@@ -12,7 +12,7 @@
 #define GOLDi_SERVERPORT 8083
 #define GOLDi_WEBCAMPORT 8084
 
-#define COMMUNICATION_PROTOCOL (struct lws_protocols){ "GOLDi-Communication-Protocol", callback_communication, 0, 0 }
+#define COMMUNICATION_PROTOCOL (struct lws_protocols){ "GOLDi-Communication-Protocol", callback_communication, 0, 8192 }
 #define WEBCAM_PROTOCOL (struct lws_protocols){ "GOLDi-Webcam-Protocol", callback_webcam, 0, 0 }
 
 typedef int(*msgHandler)(struct lws*, char*);
