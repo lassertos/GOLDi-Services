@@ -657,10 +657,15 @@ int main(int argc, char const *argv[])
                 char* data = ActuatorValueToSPIData(&actuators[i]);
                 char* completeData = malloc(SPICOMMAND_WRITE_GPIO.dataLength);
                 completeData[0] = actuators[i].pinMapping;
-                memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
+                for (int i = 1; i < SPICOMMAND_WRITE_GPIO.dataLength; i++)
+                {
+                    completeData[i] = data[i-1];
+                }
+                //memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
                 answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
                 free(data);
                 free(answer.content);
+                free(completeData);
             }
         }
     }
