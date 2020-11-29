@@ -59,11 +59,13 @@ StateMachine* parseStateMachines(char* string, unsigned int length, Variable* va
             {
                 stateMachines[stateMachineIndex].startState = &stateMachines[stateMachineIndex].states[i];
                 stateMachines[stateMachineIndex].activeState = &stateMachines[stateMachineIndex].states[i];
+                log_debug("%s = %s = %s", stateMachines[stateMachineIndex].startState->name, stateMachines[stateMachineIndex].activeState->name, stateMachines[stateMachineIndex].states[i].name);
                 stateMachines[stateMachineIndex].states[i].isActive = 1;
             }
             else if (!strcmp(endStateName, stateMachines[stateMachineIndex].states[i].name))
             {
                 stateMachines[stateMachineIndex].endState = &stateMachines[stateMachineIndex].states[i];
+                log_debug("%s = %s", stateMachines[stateMachineIndex].endState->name, stateMachines[stateMachineIndex].states[i].name);
             }
         }
 
