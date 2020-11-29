@@ -136,10 +136,10 @@ int updateStateMachine(StateMachine* stateMachine)
 
 int executeStateMachine(StateMachineExecution* execution)
 {
-    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
+    StateMachine* sm = execution->stateMachine;
+    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, sm->endState->name);
     while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
     {
-        log_debug("entered inner loop");
         if (execution->stopped)
         {
             log_debug("execution has been stopped");
@@ -151,7 +151,6 @@ int executeStateMachine(StateMachineExecution* execution)
             execution->stopped = 1;
             return 0;
         }
-        log_debug("current state: %s", execution->stateMachine->activeState->name);
     }
     log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
     log_debug("endstate has been reached");
