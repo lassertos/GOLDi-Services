@@ -659,7 +659,7 @@ int main(int argc, char const *argv[])
                 completeData[0] = actuators[i].pinMapping;
                 //TODO remove dirty temporary fix (fix experimentdata)
                 completeData[1] = actuators[i].value != 0;
-                memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
+                //memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
                 answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
                 free(data);
                 free(answer.content);
