@@ -145,7 +145,7 @@ int executeStateMachine(StateMachineExecution* execution)
     StateMachineState* z1 = getStateMachineStateByName("z1", execution->stateMachine);
     StateMachineState* z2 = getStateMachineStateByName("z2", execution->stateMachine);
     log_debug("z0.name = %s, z1.name = %s, z2.name = %s", z0->name, z1->name, z2->name);
-    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, getEndState(execution->stateMachine));
+    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, getEndState(execution->stateMachine)->name);
     while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
     {
         if (execution->stopped)
