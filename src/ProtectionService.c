@@ -555,10 +555,13 @@ int main(int argc, char const *argv[])
                 }
             }
             JSONAddItemToObject(sensorDataMsgJSON, "SensorData", sensorDataJSON);
-            char* sensorDataMsg = JSONPrint(sensorDataMsgJSON);
-            sendMessageIPC(communicationService, IPCMSGTYPE_SENSORDATA, sensorDataMsg, strlen(sensorDataMsg));
+            if (JSONGetArraySize(sensorDataJSON) > 0)
+            {
+                char* sensorDataMsg = JSONPrint(sensorDataMsgJSON);
+                sendMessageIPC(communicationService, IPCMSGTYPE_SENSORDATA, sensorDataMsg, strlen(sensorDataMsg));
+                free(sensorDataMsg);
+            }
             JSONDelete(sensorDataMsgJSON);
-            free(sensorDataMsg);
         }
 
         for (int i = 0; i < actuatorCount; i++)

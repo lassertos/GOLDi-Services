@@ -460,7 +460,7 @@ ActuatorDataPacket* parseActuatorDataPackets(char* str, int length, unsigned int
         actuators[currentIndex].actuatorID = malloc(strlen(actuatorID->valuestring)+1);
         memcpy(actuators[currentIndex].actuatorID, actuatorID->valuestring, strlen(actuatorID->valuestring)+1);
 
-        actuators[currentIndex].value = JSONGetObjectItem(jsonActuators, "ActuatorValue")->valueint;
+        actuators[currentIndex].value = JSONGetObjectItem(jsonActuator, "ActuatorValue")->valueint;
         currentIndex++;
     }
     JSONDelete(jsonActuators);
