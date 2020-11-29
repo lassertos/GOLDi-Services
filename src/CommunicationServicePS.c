@@ -70,12 +70,12 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         case WebsocketCommandExperimentInit:
         {
             log_debug("received experiment initialization message from labserver");
-            int experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valueint;
+            char* experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valuestring;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
             JSON* experimentInitAck = JSONCreateObject();
             JSONAddNumberToObject(experimentInitAck, "SenderID", deviceID);
             JSONAddNumberToObject(experimentInitAck, "Command", WebsocketCommandExperimentInitAck);
-            JSONAddNumberToObject(experimentInitAck, "ExperimentID", experimentID);
+            JSONAddStringToObject(experimentInitAck, "ExperimentID", experimentID);
             if (virtualPartner == 0)
             {
                 JSONAddFalseToObject(experimentInitAck, "virtualPartner");
@@ -304,10 +304,12 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
+                            log_debug("initialization of Protection Service failed");
                             ServiceInitializations.protectionService = -1;
                         }
                         else
                         {
+                            log_debug("initialization of Protection Service succeded");
                             ServiceInitializations.protectionService = 1;
                         }
                         break;
@@ -319,10 +321,12 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
+                            log_debug("initialization of Initialization Service failed");
                             ServiceInitializations.initializationService = -1;
                         }
                         else
                         {
+                            log_debug("initialization of Initialization Service succeded");
                             ServiceInitializations.initializationService = 1;
                         }
                         break;
@@ -334,10 +338,12 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         int success = deserializeInt(msg.content);
                         if (!success)
                         {
+                            log_debug("initialization of Physical System failed");
                             //TODO maybe add something but doesn't seem necessary right now
                         }
                         else
                         {   
+                            log_debug("initialization of Physical System succeded");
                             //TODO maybe add something but doesn't seem necessary right now
                         }
                         break;

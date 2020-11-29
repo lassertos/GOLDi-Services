@@ -125,8 +125,10 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         {
             log_debug("received experiment close message from labserver");
             wscPhysicalSystem.interrupted = 1;
-            //TODO check if physical system thread even exists
-            pthread_join(wscPhysicalSystem.thread, NULL);
+            if (wscPhysicalSystem.connectionEstablished)
+            {
+                pthread_join(wscPhysicalSystem.thread, NULL);
+            }
             JSON* experimentCloseAckJSON = JSONCreateObject();
             JSONAddNumberToObject(experimentCloseAckJSON, "Command", WebsocketCommandExperimentCloseAck);
             char* experimentCloseAck = JSONPrint(experimentCloseAckJSON);

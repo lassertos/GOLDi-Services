@@ -525,7 +525,7 @@ int main(int argc, char const *argv[])
 
     while(1)
     {
-        log_info("waiting for all messages to be read");
+        //log_info("waiting for all messages to be read");
         /* Read all IPC Messages and update CurrentActuator */
         while (hasMessages(communicationService));
 
