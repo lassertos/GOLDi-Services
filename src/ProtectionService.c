@@ -660,7 +660,7 @@ int main(int argc, char const *argv[])
                 //TODO remove dirty temporary fix (fix experimentdata)
                 completeData[1] = actuators[i].value != 0;
                 //memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
-                answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
+                answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, completeData, &mutexSPI);
                 free(data);
                 free(answer.content);
                 free(completeData);
