@@ -123,11 +123,11 @@ int updateStateMachine(StateMachine* stateMachine)
         }
         else
         {
-            return 1;
+            return 0;
         }
     }
 
-    return 0;
+    return 1;
 }
 
 int executeStateMachine(StateMachineExecution* execution)
@@ -136,16 +136,19 @@ int executeStateMachine(StateMachineExecution* execution)
     {
         if (execution->stopped)
         {
-            return 0;
-        }
-        if (updateStateMachine(execution->stateMachine))
-        {
-            execution->stopped = 1;
+            log_debug("execution has been stopped");
             return 1;
         }
+        if (!updateStateMachine(execution->stateMachine))
+        {
+            log_debug("an error has occurred during the update of the Statemachine");
+            execution->stopped = 1;
+            return 0;
+        }
     }
+    log_debug("endstate has been reached");
     execution->stopped = 1;
-    return 0;
+    return 1;
 }
 
 void resetStateMachine(StateMachine* stateMachine)
