@@ -419,6 +419,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             for (int i = 0; i < newActuatorDataCount; i++)
                             {
                                 Actuator* actuator = getActuatorWithID(incomingActuators, actuatorDataPackets[i].actuatorID, actuatorCount);
+                                log_debug("actuator value: %lld -> %lld", actuator->value, actuatorDataPackets[i].value);
                                 actuator->value = actuatorDataPackets[i].value;
                                 actuator->valueDouble = (double)actuatorDataPackets[i].value;
                                 free(actuatorDataPackets[i].actuatorID);

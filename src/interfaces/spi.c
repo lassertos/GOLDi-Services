@@ -42,23 +42,23 @@ spiAnswer executeSPICommand(spiCommand command, char* data, pthread_mutex_t* mut
         completeCommand[1 + command.dataLength + i] = 0;
     }
 
-    printf("SPICOMMAND: ");
+    /*printf("SPICOMMAND: ");
     for (int i = 0; i < completeCommandLength - command.answerLength; i++)
     {  
         printf("%x", completeCommand[i] & 0xff);
     }
-    printf("\n");
+    printf("\n");*/
 
     pthread_mutex_lock(mutex);
     bcm2835_spi_transfern(completeCommand, completeCommandLength);
     pthread_mutex_unlock(mutex);
 
-    printf("SPIANSWER: ");
+    /*printf("SPIANSWER: ");
     for (int i = 0; i < command.answerLength; i++)
     {  
         printf("%x", completeCommand[i] & 0xff);
     }
-    printf("\n");
+    printf("\n");*/
 
     //TODO check if it really works like that
     if (command.answerLength > 0)
