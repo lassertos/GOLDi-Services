@@ -123,6 +123,7 @@ int updateStateMachine(StateMachine* stateMachine)
         {
             stateMachine->states[i].isActive = resultTransitionFunction;
             stateMachine->activeState = &stateMachine->states[i];
+            break;
         }
         else
         {
@@ -135,10 +136,10 @@ int updateStateMachine(StateMachine* stateMachine)
 
 int executeStateMachine(StateMachineExecution* execution)
 {
-    printStateMachineInfo(execution->stateMachine);
     log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
     while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
     {
+        log_debug("entered inner loop");
         if (execution->stopped)
         {
             log_debug("execution has been stopped");
@@ -150,7 +151,9 @@ int executeStateMachine(StateMachineExecution* execution)
             execution->stopped = 1;
             return 0;
         }
+        log_debug("current state: %s", execution->stateMachine->activeState->name);
     }
+    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
     log_debug("endstate has been reached");
     execution->stopped = 1;
     return 1;
