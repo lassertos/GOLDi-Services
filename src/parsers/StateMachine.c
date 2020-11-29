@@ -1,6 +1,7 @@
 #include "StateMachine.h"
 #include "json.h"
 #include "string.h"
+#include "../logging/log.h"
 
 static StateMachineState* getStateMachineStateByName(char* name, StateMachine* stateMachine)
 {
