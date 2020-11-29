@@ -133,6 +133,7 @@ int updateStateMachine(StateMachine* stateMachine)
 
 int executeStateMachine(StateMachineExecution* execution)
 {
+    log_debug("current state: %s, end state: &s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
     while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
     {
         if (execution->stopped)
