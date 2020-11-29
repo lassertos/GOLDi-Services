@@ -47,15 +47,13 @@ int startInitialization(void)
             sendMessageIPC(communicationService, IPCMSGTYPE_ACTUATORDATA, actuatorDataMsg, strlen(actuatorDataMsg));
             JSONDelete(actuatorDataMsgJSON);
             free(actuatorDataMsg);
+            currentState = execution.stateMachine->activeState->name;
         }
     }
     pthread_join(executionThread, &result);
-    if (!strcmp(execution.stateMachine->activeState->name, execution.stateMachine->endState->name))
-    {
-        char* resultString = serializeInt(result);
-        sendMessageIPC(communicationService, IPCMSGTYPE_INITIALIZATIONFINISHED, resultString, 4);
-        free(resultString);
-    }
+    char* resultString = serializeInt(result);
+    sendMessageIPC(communicationService, IPCMSGTYPE_INITIALIZATIONFINISHED, resultString, 4);
+    free(resultString);
     return result;
 }
 
