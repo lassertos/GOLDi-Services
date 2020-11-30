@@ -7,7 +7,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static const char* ffmpegCommandBlueprint = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
+static const char* ffmpegCommandBlueprint1 = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
+static const char* ffmpegCommandBlueprint2 = "ffmpeg -f %s -i %s -vframes 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
+static const char* ffmpegCommandBlueprint3 = "ffmpeg -f %s -s 640x480 -r 1 -i %s -vframes 1 -f image2 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
 static char* ffmpegCommand;
 static IPCSocketConnection* communicationService;
 static websocketConnection wsc;
@@ -85,9 +87,23 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         CameraData.id = cameraIDJSON->valueint;
 
+                        if (!strncmp(cameraTypeJSON->valuestring, "USB1", 3))
+                        {
+                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint1) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
+                            sprintf(ffmpegCommand, ffmpegCommandBlueprint1, CameraData.device, CameraData.address);
+                        }
+                        else if (!strncmp(cameraTypeJSON->valuestring, "USB2", 3))
+                        {
+                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint2) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
+                            sprintf(ffmpegCommand, ffmpegCommandBlueprint2, CameraData.device, CameraData.address);
+                        } 
+                        else if (!strncmp(cameraTypeJSON->valuestring, "USB3", 3))
+                        {
+                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint3) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
+                            sprintf(ffmpegCommand, ffmpegCommandBlueprint3, CameraData.device, CameraData.address);
+                        }
+
                         JSONDelete(msgJSON);
-                        ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
-                        sprintf(ffmpegCommand, ffmpegCommandBlueprint, CameraData.device, CameraData.address);
                         sendMessageIPC(ipcsc, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
 
                         initialized = 1;
