@@ -5,6 +5,9 @@
 #include "interfaces/ipcsockets.h"
 #include "programmer/goldi-programmer.h"
 #include "logging/log.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static IPCSocketConnection* communicationService;
 
@@ -87,6 +90,25 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     case IPCMSGTYPE_INITPROGRAMMINGSERVICE:
                     {
                         log_info("initializing and sending result");
+
+                        //creating temporary folder for programming files TODO maybe add to utils
+                        struct stat st = {0};
+
+                        if (stat("/tmp/GOLDiServices", &st) == -1) 
+                        {
+                            if (mkdir("/tmp/GOLDiServices", 0755) == -1)
+                            {
+                                //TODO errorhandling
+                            }
+                        }
+                        else if (stat("/tmp/GOLDiServices/ProgrammingService", &st) == -1) 
+                        {
+                            if (mkdir("/tmp/GOLDiServices/ProgrammingService", 0755) == -1)
+                            {
+                                //TODO errorhandling
+                            }
+                        } 
+
                         int result = 0;
                         if (!strcmp(msg.content, "MicroController"))
                         {

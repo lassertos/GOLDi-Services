@@ -3,6 +3,9 @@
 #include "interfaces/ipcsockets.h"
 #include "parsers/json.h"
 #include "logging/log.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static const char* ffmpegCommandBlueprint = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
 static char* ffmpegCommand;
@@ -47,6 +50,24 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                 {
                     case IPCMSGTYPE_INITWEBCAMSERVICE:
                     {
+                        //creating temporary folder for images TODO maybe add to utils
+                        struct stat st = {0};
+
+                        if (stat("/tmp/GOLDiServices", &st) == -1) 
+                        {
+                            if (mkdir("/tmp/GOLDiServices", 0755) == -1)
+                            {
+                                //TODO errorhandling
+                            }
+                        }
+                        else if (stat("/tmp/GOLDiServices/WebcamService", &st) == -1) 
+                        {
+                            if (mkdir("/tmp/GOLDiServices/WebcamService", 0755) == -1)
+                            {
+                                //TODO errorhandling
+                            }
+                        } 
+
                         log_debug("received initialization message");
                         JSON* msgJSON = JSONParse(msg.content);
                         JSON* cameraTypeJSON = JSONGetObjectItem(msgJSON, "Type");
