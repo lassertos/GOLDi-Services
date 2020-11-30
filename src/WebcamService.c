@@ -11,6 +11,7 @@ static const char* ffmpegCommandBlueprint = "ffmpeg -video_size 640x480 -framera
 static char* ffmpegCommand;
 static IPCSocketConnection* communicationService;
 static websocketConnection wsc;
+static volatile unsigned int initialized = 0;
 
 /*
  *  this struct contains the information needed to fetch images using ffmpeg
@@ -88,6 +89,8 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
                         sprintf(ffmpegCommand, ffmpegCommandBlueprint, CameraData.device, CameraData.address);
                         sendMessageIPC(ipcsc, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
+
+                        initialized = 1;
                         break;
                     }
 
@@ -165,7 +168,7 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    while(!wsc.connectionEstablished);
+    while(!(wsc.connectionEstablished && initialized));
 
     unsigned int filesize;
     while (1)
@@ -173,10 +176,16 @@ int main(int argc, char const *argv[])
         system(ffmpegCommand);
         char* filecontent = readFile("/tmp/GOLDiServices/WebcamService/currentFrame.jpg", &filesize);
         char* encodedcontent = encodeBase64(filecontent, filesize);
+
         JSON* msgJSON = JSONCreateObject();
         JSONAddNumberToObject(msgJSON, "id", CameraData.id);
         JSONAddStringToObject(msgJSON, "img", encodedcontent);
-        sendMessageWebsocket(wsc.wsi, encodedcontent);
+
+        char* message = JSONPrint(msgJSON);
+        sendMessageWebsocket(wsc.wsi, message);
+        free(message);
+
+        JSONDelete(msgJSON);
         free(filecontent);
         if(strlen(encodedcontent) > 0);
             free(encodedcontent);
