@@ -21,10 +21,9 @@ static websocketConnection wsc;
  */
 struct
 {
-    char*           device;    
-    char*           address;
-    unsigned int    active:1;
-    unsigned int    id;
+    char*        device;    
+    char*        address;
+    unsigned int id;
 } CameraData;
 
 /*
@@ -60,7 +59,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 //TODO errorhandling
                             }
                         }
-                        
+
                         if (stat("/tmp/GOLDiServices/WebcamService", &st) == -1) 
                         {
                             if (mkdir("/tmp/GOLDiServices/WebcamService", 0755) == -1)
@@ -92,23 +91,8 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         break;
                     }
 
-                    case IPCMSGTYPE_STARTEXPERIMENT:
-                    {
-                        log_debug("received start experiment message");
-                        CameraData.active = 1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_STOPEXPERIMENT:
-                    {
-                        log_debug("received stop experiment message");
-                        CameraData.active = 0;
-                        break;
-                    }
-
                     case IPCMSGTYPE_INTERRUPTED:
                     {
-                        CameraData.active = 0;
                         ipcsc->open = 0;
                         closeIPCConnection(ipcsc);
                         free(msg.content);
@@ -118,7 +102,6 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     case IPCMSGTYPE_CLOSEDCONNECTION:
                     {
-                        CameraData.active = 0;
                         ipcsc->open = 0;
                         closeIPCConnection(ipcsc);
                         free(msg.content);
@@ -187,20 +170,17 @@ int main(int argc, char const *argv[])
     unsigned int filesize;
     while (1)
     {
-        if (CameraData.active)
-        {
-            system(ffmpegCommand);
-            char* filecontent = readFile("/tmp/GOLDiServices/WebcamService/currentFrame.jpg", &filesize);
-            char* encodedcontent = encodeBase64(filecontent, filesize);
-            JSON* msgJSON = JSONCreateObject();
-            JSONAddNumberToObject(msgJSON, "id", CameraData.id);
-            JSONAddStringToObject(msgJSON, "img", encodedcontent);
-            sendMessageWebsocket(wsc.wsi, encodedcontent);
-            free(filecontent);
-            if(strlen(encodedcontent) > 0);
-                free(encodedcontent);
-            usleep(30000);
-        }
+        system(ffmpegCommand);
+        char* filecontent = readFile("/tmp/GOLDiServices/WebcamService/currentFrame.jpg", &filesize);
+        char* encodedcontent = encodeBase64(filecontent, filesize);
+        JSON* msgJSON = JSONCreateObject();
+        JSONAddNumberToObject(msgJSON, "id", CameraData.id);
+        JSONAddStringToObject(msgJSON, "img", encodedcontent);
+        sendMessageWebsocket(wsc.wsi, encodedcontent);
+        free(filecontent);
+        if(strlen(encodedcontent) > 0);
+            free(encodedcontent);
+        usleep(30000);
     }
 
     pthread_join(communicationService->thread, NULL);
