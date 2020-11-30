@@ -87,17 +87,17 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         CameraData.id = cameraIDJSON->valueint;
 
-                        if (!strncmp(cameraTypeJSON->valuestring, "USB1", 3))
+                        if (!strncmp(cameraTypeJSON->valuestring, "USB1", 4))
                         {
                             ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint1) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
                             sprintf(ffmpegCommand, ffmpegCommandBlueprint1, CameraData.device, CameraData.address);
                         }
-                        else if (!strncmp(cameraTypeJSON->valuestring, "USB2", 3))
+                        else if (!strncmp(cameraTypeJSON->valuestring, "USB2", 4))
                         {
                             ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint2) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
                             sprintf(ffmpegCommand, ffmpegCommandBlueprint2, CameraData.device, CameraData.address);
                         } 
-                        else if (!strncmp(cameraTypeJSON->valuestring, "USB3", 3))
+                        else if (!strncmp(cameraTypeJSON->valuestring, "USB3", 4))
                         {
                             ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint3) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
                             sprintf(ffmpegCommand, ffmpegCommandBlueprint3, CameraData.device, CameraData.address);
