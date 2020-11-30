@@ -189,7 +189,7 @@ int main(int argc, char const *argv[])
         free(filecontent);
         if(strlen(encodedcontent) > 0);
             free(encodedcontent);
-        usleep(30000);
+        //usleep(30000);
     }
 
     pthread_join(communicationService->thread, NULL);
