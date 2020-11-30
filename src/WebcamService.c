@@ -60,7 +60,8 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 //TODO errorhandling
                             }
                         }
-                        else if (stat("/tmp/GOLDiServices/WebcamService", &st) == -1) 
+                        
+                        if (stat("/tmp/GOLDiServices/WebcamService", &st) == -1) 
                         {
                             if (mkdir("/tmp/GOLDiServices/WebcamService", 0755) == -1)
                             {

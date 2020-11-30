@@ -101,7 +101,8 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 //TODO errorhandling
                             }
                         }
-                        else if (stat("/tmp/GOLDiServices/ProgrammingService", &st) == -1) 
+                        
+                        if (stat("/tmp/GOLDiServices/ProgrammingService", &st) == -1) 
                         {
                             if (mkdir("/tmp/GOLDiServices/ProgrammingService", 0755) == -1)
                             {
