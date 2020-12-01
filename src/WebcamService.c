@@ -6,10 +6,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
-static const char* ffmpegCommandBlueprint1 = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
-static const char* ffmpegCommandBlueprint2 = "ffmpeg -f %s -i %s -vframes 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
-static const char* ffmpegCommandBlueprint3 = "ffmpeg -f %s -s 640x480 -r 1 -i %s -vframes 1 -f image2 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
+static const char* ffmpegCommandBlueprint = "ffmpeg -video_size 640x480 -framerate 20 -f %s -i %s -y -frames:v 1 /tmp/GOLDiServices/WebcamService/currentFrame.jpg";
 static char* ffmpegCommand;
 static IPCSocketConnection* communicationService;
 static websocketConnection wsc;
@@ -86,22 +85,10 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         strcpy(CameraData.address, cameraAddressJSON->valuestring);
 
                         CameraData.id = cameraIDJSON->valueint;
-
-                        if (!strncmp(cameraTypeJSON->valuestring, "USB1", 4))
-                        {
-                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint1) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
-                            sprintf(ffmpegCommand, ffmpegCommandBlueprint1, CameraData.device, CameraData.address);
-                        }
-                        else if (!strncmp(cameraTypeJSON->valuestring, "USB2", 4))
-                        {
-                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint2) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
-                            sprintf(ffmpegCommand, ffmpegCommandBlueprint2, CameraData.device, CameraData.address);
-                        } 
-                        else if (!strncmp(cameraTypeJSON->valuestring, "USB3", 4))
-                        {
-                            ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint3) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
-                            sprintf(ffmpegCommand, ffmpegCommandBlueprint3, CameraData.device, CameraData.address);
-                        }
+                        
+                        //currently all the options of the configurationfile are unused TODO readd functionality 
+                        ffmpegCommand = malloc(strlen(ffmpegCommandBlueprint) + strlen(CameraData.device) + strlen(CameraData.address) + 1);
+                        sprintf(ffmpegCommand, ffmpegCommandBlueprint, CameraData.device, CameraData.address);
 
                         JSONDelete(msgJSON);
                         sendMessageIPC(ipcsc, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
@@ -165,6 +152,17 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     return result;
 }
 
+unsigned int getLengthOfNumber(unsigned long long number)
+{
+    int length = 1;
+    while ((number / 10) > 0)
+    {
+        length++;
+        number /= 10;
+    }
+    return length;
+}
+
 int main(int argc, char const *argv[])
 {
     signal(SIGINT, sigint_handler);
@@ -179,6 +177,7 @@ int main(int argc, char const *argv[])
     }
 
     /* Websocket creation */
+    printf("creating websocket\n");
     if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_WEBCAMPORT, handleWebsocketMessage, 0))
     {
         return -1;
@@ -186,27 +185,68 @@ int main(int argc, char const *argv[])
 
     while(!(wsc.connectionEstablished && initialized));
 
+    //delete possible leftover images
+    DIR *theFolder = opendir("/tmp/GOLDiServices/WebcamService");
+    struct dirent *next_file;
+    char filepath[256];
+    while ( (next_file = readdir(theFolder)) != NULL )
+    {
+        // build the path for each file in the folder
+        sprintf(filepath, "%s/%s", "/tmp/GOLDiServices/WebcamService", next_file->d_name);
+        remove(filepath);
+    }
+    closedir(theFolder);
+    
+    pid_t pid;
+    switch (pid=fork())
+    {
+        case -1:   /* error at fork() */ 
+            break;
+        case  0:   /* childprocess */
+            //"-input_format", "yuyv422",
+            execl("/usr/bin/ffmpeg", "/usr/bin/ffmpeg", "-f", "v4l2", "-video_size", "640x480", "-i", "/dev/video0", "-vf", "fps=30", "/tmp/GOLDiServices/WebcamService/img%01d.jpg", NULL);
+            exit(1);
+            break;
+        default:   /* parentprocess */
+            break;
+    }
+    sleep(1);
     unsigned int filesize;
+    unsigned long long index = 1;
     while (1)
     {
-        system(ffmpegCommand);
-        char* filecontent = readFile("/tmp/GOLDiServices/WebcamService/currentFrame.jpg", &filesize);
+        //system(ffmpegCommand);
+        char* filename = malloc(strlen("/tmp/GOLDiServices/WebcamService/img.jpg") + getLengthOfNumber(index) + 1);
+        sprintf(filename, "/tmp/GOLDiServices/WebcamService/img%lld.jpg", index);
+        char* filename2 = malloc(strlen("/tmp/GOLDiServices/WebcamService/img.jpg") + getLengthOfNumber(index) + 1);
+        sprintf(filename2, "/tmp/GOLDiServices/WebcamService/img%lld.jpg", index+1);
+        struct stat st = {0};
+        while (stat(filename2, &st) < 0)
+        {
+            usleep(5000);
+        }
+        char* filecontent = readFile(filename, &filesize);
         char* encodedcontent = encodeBase64(filecontent, filesize);
 
         JSON* msgJSON = JSONCreateObject();
         JSONAddNumberToObject(msgJSON, "id", CameraData.id);
-        JSONAddStringToObject(msgJSON, "img", encodedcontent);
+        JSONAddStringToObject(msgJSON, "img", encodedcontent == 0 ? "" : encodedcontent);
 
         char* message = JSONPrint(msgJSON);
         sendMessageWebsocket(wsc.wsi, message);
+        usleep(25000);
         free(message);
 
         JSONDelete(msgJSON);
         free(filecontent);
-        if(strlen(encodedcontent) > 0);
-            free(encodedcontent);
-        //usleep(30000);
+        free(encodedcontent);
+        remove(filename);
+        free(filename);
+        free(filename2);
+        index++;
     }
+
+    exit(0);
 
     pthread_join(communicationService->thread, NULL);
     pthread_join(wsc.thread, NULL);

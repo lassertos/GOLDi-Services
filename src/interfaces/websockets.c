@@ -4,12 +4,12 @@
 /*
  *  The retry and backoff policy we want to use for our client connections
  */
-static const uint32_t backoff_ms[] = { 1000, 2000, 3000, 4000, 5000 };
+static const uint32_t backoff_ms[] = { 5000 };
 
 static const lws_retry_bo_t retry = {
 	.retry_ms_table			    = backoff_ms,
 	.retry_ms_table_count	    = LWS_ARRAY_SIZE(backoff_ms),
-	.conceal_count			    = LWS_ARRAY_SIZE(backoff_ms),
+	.conceal_count			    = LWS_RETRY_CONCEAL_ALWAYS,
 
 	.secs_since_valid_ping		= 3,  /* force PINGs after secs idle */
 	.secs_since_valid_hangup	= 10, /* hangup after secs idle */

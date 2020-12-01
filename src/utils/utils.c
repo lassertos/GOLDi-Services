@@ -45,10 +45,19 @@ char* encodeBase64(char* string, unsigned int lengthString)
 {
     if (lengthString < 1)
     {
-        return "";
+        return NULL;
     } 
 
-    unsigned int lengthPaddedString = lengthString + 3 - (lengthString % 3);
+    unsigned int lengthPaddedString;
+
+    if (lengthString % 3 != 0)
+    {
+        lengthPaddedString = lengthString + 3 - (lengthString % 3);
+    }
+    else
+    {
+        lengthPaddedString = lengthString;
+    }
     unsigned int lengthBase64String = (lengthPaddedString / 3) * 4;
 
     char* paddedString = malloc(lengthPaddedString + 1);

@@ -8,7 +8,8 @@
 #include <pthread.h>
 
 //TODO change to real values
-#define GOLDi_SERVERADDRESS "lora.eichenbergs.de"
+#define GOLDi_SERVERADDRESS "192.168.179.24"
+#define GOLDi_SERVERADDRESS2 "lora.eichenbergs.de"
 #define GOLDi_SERVERPORT 8083
 #define GOLDi_WEBCAMPORT 8084
 
