@@ -33,8 +33,8 @@ GOLDiCommunicationService_LDFLAGS = -I/usr/local/include/**
 GOLDiCommunicationService_CPPFLAGS = -g -O0
 
 GOLDiWebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
-GOLDiWebcamService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread -lgstaudio-1.0 -lgstvideo-1.0 -lgstapp-1.0 -lgstbase-1.0 -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0
-GOLDiWebcamService_LDFLAGS = -I/usr/local/include/** -I/usr/include/gstreamer-1.0 -I/usr/include/orc-0.4 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+GOLDiWebcamService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread $(GSTREAMER_LIBS)
+GOLDiWebcamService_LDFLAGS = $(GSTREAMER_CFLAGS)
 GOLDiWebcamService_CPPFLAGS = -g -O0
 
 GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
