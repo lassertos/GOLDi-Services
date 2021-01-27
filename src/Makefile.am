@@ -28,13 +28,13 @@ GOLDiServices3AxisPortal_DATA = experiments/3AxisPortal/ExperimentData.json expe
 endif
 
 GOLDiCommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
-GOLDiCommunicationService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread
-GOLDiCommunicationService_LDFLAGS = -I/usr/local/include/**
+GOLDiCommunicationService_LDADD = $(LWS_LIBS) -lcjson -lsystemd -lpthread
+GOLDiCommunicationService_LDFLAGS = $(LWS_CFLAGS)
 GOLDiCommunicationService_CPPFLAGS = -g -O0
 
 GOLDiWebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
-GOLDiWebcamService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread $(GSTREAMER_LIBS)
-GOLDiWebcamService_LDFLAGS = $(GSTREAMER_CFLAGS)
+GOLDiWebcamService_LDADD = $(LWS_LIBS) -lcjson -lsystemd -lpthread $(GSTREAMER_LIBS)
+GOLDiWebcamService_LDFLAGS = $(LWS_CFLAGS) $(GSTREAMER_CFLAGS)
 GOLDiWebcamService_CPPFLAGS = -g -O0
 
 GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
