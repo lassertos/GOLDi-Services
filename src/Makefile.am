@@ -18,10 +18,6 @@ Logging = logging/log.h logging/log.c
 if CONTROLUNIT
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiCommandService
 GOLDiCommunicationService_SOURCES = CommunicationServiceCU.c 
-
-GOLDiServicesControlUnitsdir = $(GOLDiServicesdir)/controlunits
-GOLDiServicesMicroControllerdir = $(GOLDiServicesControlUnitsdir)/MicroController
-GOLDiServicesMicroController_DATA = controlunits/MicroController/FPGA.svf
 else
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiWebcamService GOLDiProtectionService GOLDiInitializationService
 GOLDiCommunicationService_SOURCES = CommunicationServicePS.c 
@@ -32,31 +28,27 @@ GOLDiServices3AxisPortal_DATA = experiments/3AxisPortal/ExperimentData.json expe
 endif
 
 GOLDiCommunicationService_SOURCES += $(IPCSockets) $(WebSockets) $(Utils) $(JSON) $(Logging)
-GOLDiCommunicationService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
+GOLDiCommunicationService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread
+GOLDiCommunicationService_LDFLAGS = -I/usr/local/include/**
 GOLDiCommunicationService_CPPFLAGS = -g -O0
-GOLDiCommunicationService_LDFLAGS = -g
 
 GOLDiWebcamService_SOURCES = WebcamService.c $(IPCSockets) $(WebSockets) $(Utils) $(Logging) $(JSON)
-GOLDiWebcamService_LDADD = -lwebsockets -lcjson -lsystemd -lpthread
+GOLDiWebcamService_LDADD = -L/usr/local/lib -lwebsockets -lcjson -lsystemd -lpthread -lgstaudio-1.0 -lgstvideo-1.0 -lgstapp-1.0 -lgstbase-1.0 -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0
+GOLDiWebcamService_LDFLAGS = -I/usr/local/include/** -I/usr/include/gstreamer-1.0 -I/usr/include/orc-0.4 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
 GOLDiWebcamService_CPPFLAGS = -g -O0
-GOLDiWebcamService_LDFLAGS = -g
 
 GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
 GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
 GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
-GOLDiProtectionService_LDFLAGS = -g
 
 GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
 GOLDiInitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
-GOLDiInitializationService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
-GOLDiInitializationService_LDFLAGS = -g
+GOLDiInitializationService_CPPFLAGS = -g -O0
 
 GOLDiProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)
 GOLDiProgrammingService_LDADD = -lpthread -lsystemd -lbcm2835 -lxsvf
 GOLDiProgrammingService_CPPFLAGS = -g -O0
-GOLDiProgrammingService_LDFLAGS = -g
 
 GOLDiCommandService_SOURCES = CommandService.c $(IPCSockets) $(Utils) $(JSON) $(Logging) $(SensorsActuators) $(SPI)
 GOLDiCommandService_LDADD = -lpthread -lsystemd -lbcm2835 -lcjson
 GOLDiCommandService_CPPFLAGS = -g -O0
-GOLDiCommandService_LDFLAGS = -g
