@@ -241,23 +241,19 @@ int main(int argc, char const *argv[])
     data.pipeline = gst_pipeline_new ("test-pipeline");
 
     if (!data.videosource) {
-        g_printerr ("Videosource could be created.\n");
-        return -1;
+        g_printerr ("Videosource could not be created.\n");
     }
 
     if (!data.videoconvert) {
-        g_printerr ("Videoconvert could be created.\n");
-        return -1;
+        g_printerr ("Videoconvert could not be created.\n");
     }
 
     if (!data.appsink) {
-        g_printerr ("Appsink could be created.\n");
-        return -1;
+        g_printerr ("Appsink could not be created.\n");
     }
 
     if (!data.pipeline) {
         g_printerr ("Pipeline creation failed.\n");
-        return -1;
     }
 
     if (!data.pipeline || !data.videosource || !data.videoconvert|| !data.appsink) {
