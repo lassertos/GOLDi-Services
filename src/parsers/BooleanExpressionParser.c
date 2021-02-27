@@ -559,7 +559,7 @@ void printBooleanExpression(BooleanExpression *expression)
     if (expression->type == BoolExprCONSTANT)
     {
         if (expression->name != NULL)
-            printf("%s:", expression->name);
+            printf("%s[:", expression->name);
         for (int i = 0; i < expression->valueSize; i++)
         {
             if (!(i == expression->valueSize-1)) 
@@ -575,7 +575,7 @@ void printBooleanExpression(BooleanExpression *expression)
     else if (expression->type == BoolExprVARIABLE)
     {
         if (expression->name != NULL)
-            printf("%s:", expression->name);
+            printf("%s[:", expression->name);
         for (int i = 0; i < expression->valueSize; i++)
         {
             if (!(i == expression->valueSize-1)) 
