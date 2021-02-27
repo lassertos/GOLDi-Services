@@ -200,7 +200,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             char* subnetCU = JSONGetObjectItem(JSONGetObjectItem(deviceDataJSON, "Network"), "Subnet")->valuestring;
             if (!strcmp(subnetPS, subnetCU)) 
             {
-                if(websocketPrepareContext(&wscPhysicalSystem, COMMUNICATION_PROTOCOL, ipAdressPS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+                if(websocketPrepareContext(&wscPhysicalSystem, WEBSOCKET_PROTOCOL, ipAdressPS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
                 {
                     //fail
                     JSONAddFalseToObject(directConnectionAckJSON, "Outcome");
@@ -380,7 +380,7 @@ int main(int argc, char const *argv[])
     signal(SIGINT, sigint_handler);
 
     /* create all needed sockets */
-    if(websocketPrepareContext(&wscLabserver, COMMUNICATION_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wscLabserver, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }

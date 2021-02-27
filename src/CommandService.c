@@ -392,7 +392,7 @@ int main(int argc, char const *argv[])
     pthread_mutex_init(&mutexSPI, NULL);
 
     int fd = createIPCSocket(COMMAND_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, messageHandlerIPC);
     if (communicationService == NULL)
     {
         log_error("connection to Communication Service could not be established");

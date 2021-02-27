@@ -207,7 +207,7 @@ int main(int argc, char const *argv[])
 
     /* IPC socket creation */
     int fd = createIPCSocket(WEBCAM_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, messageHandlerIPC);
     if (communicationService == NULL)
     {
         printf("Connection to Communication Service could not be established!\n");
@@ -215,7 +215,7 @@ int main(int argc, char const *argv[])
     }
 
     /* Websocket creation */
-    if(websocketPrepareContext(&wsc, WEBCAM_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wsc, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }

@@ -33,7 +33,6 @@ typedef struct
 {
     int             fd;
     char*           socketname;
-    char*           buffer;
     int             open;
     pthread_mutex_t mutex;
     pthread_t       thread;
@@ -89,11 +88,11 @@ typedef struct
     char*           content;
 } Message;
 
-typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
+typedef int(*IPCMsgHandler)(IPCSocketConnection* ipcsc);
 
-int createIPCSocket();
-IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler);
-IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler);
+int createIPCSocket(char* socketname);
+IPCSocketConnection* connectToIPCSocket(char* socketname, IPCMsgHandler messageHandler);
+IPCSocketConnection* acceptIPCConnection(int fd, IPCMsgHandler messageHandler);
 int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* msg, int length);
 Message receiveMessageIPC(IPCSocketConnection* ipcsc);
 void closeIPCConnection(IPCSocketConnection* ipcsc);

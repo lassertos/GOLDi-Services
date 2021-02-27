@@ -515,7 +515,7 @@ int main(int argc, char const *argv[])
     }
 
     int fd = createIPCSocket(PROTECTION_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, messageHandlerIPC);
     if (communicationService == NULL)
     {
         log_error("connection to Communication Service could not be established!\n");

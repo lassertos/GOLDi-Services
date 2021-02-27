@@ -410,7 +410,7 @@ int main(int argc, char const *argv[])
     signal(SIGINT, sigint_handler);
 
     /* create all needed sockets (except serversocket) */
-    if(websocketPrepareContext(&wscLabserver, COMMUNICATION_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wscLabserver, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }
@@ -482,7 +482,7 @@ int main(int argc, char const *argv[])
 
     /* before continuing to parse try to create serversocket for wsc with Control Unit */
     char* ipAdress = JSONGetObjectItem(JSONGetObjectItem(jsonDeviceConfig, "Network"), "LocalIP")->valuestring;
-    if(websocketPrepareContext(&wscControlUnit, COMMUNICATION_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 1))
+    if(websocketPrepareContext(&wscControlUnit, WEBSOCKET_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 1))
     {
         return -1;
     }

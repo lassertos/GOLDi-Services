@@ -65,7 +65,7 @@ int createIPCSocket(char* socketname)
  *  Creates a new socket connection to the socket specified by socketname.
  *  Used for a connection request from the client-side. 
  */ 
-IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler)
+IPCSocketConnection* connectToIPCSocket(char* socketname, IPCMsgHandler messageHandler)
 {
     int fd;
     struct sockaddr_un addr;
@@ -80,7 +80,6 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
 
     connection->fd = fd;
     connection->socketname = socketname;
-    connection->buffer = NULL;
     connection->open = 1;
 
     memset(&addr, 0, sizeof(addr));
@@ -112,23 +111,26 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageH
 }
 
 /*
- *  Accepts an incoming connection request on the socket specified by fd
- *  from the socket specified by socketname.
+ *  Accepts an incoming connection request on the socket specified by fd.
  */ 
-IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler)
+IPCSocketConnection* acceptIPCConnection(int fd, IPCMsgHandler messageHandler)
 {
     IPCSocketConnection* connection = malloc(sizeof *connection);
-    connection->socketname = socketname;
-    connection->buffer = NULL;
+    struct sockaddr *address; 
+    socklen_t *addressLength;
     connection->open = 1;
 
-    if ((connection->fd = accept(fd, NULL, NULL)) == -1) 
+    if ((connection->fd = accept(fd, address, addressLength)) == -1) 
     {
         free(connection);
         log_error("accept error: %s", strerror(errno));
         //perror("accept error");
         return NULL;
     }
+
+    connection->socketname = malloc(*addressLength+1);
+    memcpy(connection->socketname, address->sa_data, *addressLength);
+    connection->socketname[*addressLength] = 0;
 
     pthread_mutex_init(&connection->mutex, NULL);
 
@@ -138,7 +140,7 @@ IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler
         return NULL;
     }
 
-    log_info("accepted connection from %s", socketname);
+    log_info("accepted connection from %s", connection->socketname);
     //printf("accepted connection from %s\n", socketname);
 
     return connection;
@@ -167,18 +169,18 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* ms
     for (int i = 0; i < fragments; i++)
     {
         // prepare buffer for sending the message 
-        ipcsc->buffer = malloc(completeLength[i]);
+        char* buffer = malloc(completeLength[i]);
 
-        // prepare message header
+        // prepare message header and build SocketMessage
         char* type = serializeInt(messageType);
         char* length = serializeInt(messageLength[i]);
         char* fragmentNumber = serializeInt(i);
         char* isLastFragment = serializeInt(i == (fragments-1));
 
-        memcpy(ipcsc->buffer, type, sizeof(int));
-        memcpy(ipcsc->buffer+sizeof(int), length, sizeof(int));
-        memcpy(ipcsc->buffer+sizeof(int)*2, fragmentNumber, sizeof(int));
-        memcpy(ipcsc->buffer+sizeof(int)*3, isLastFragment, sizeof(int));
+        memcpy(buffer, type, sizeof(int));
+        memcpy(buffer+sizeof(int), length, sizeof(int));
+        memcpy(buffer+sizeof(int)*2, fragmentNumber, sizeof(int));
+        memcpy(buffer+sizeof(int)*3, isLastFragment, sizeof(int));
 
         free(type);
         free(length);
@@ -186,22 +188,22 @@ int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* ms
         free(isLastFragment);
 
         // copy message into buffer
-        memcpy(ipcsc->buffer+MESSAGE_HEADER_SIZE, msg+i*(MAX_MESSAGE_SIZE-MESSAGE_HEADER_SIZE), messageLength[i]);
+        memcpy(buffer+MESSAGE_HEADER_SIZE, msg+i*(MAX_MESSAGE_SIZE-MESSAGE_HEADER_SIZE), messageLength[i]);
 
-        if (write(ipcsc->fd, ipcsc->buffer, completeLength[i]) != completeLength[i])
+        if (write(ipcsc->fd, buffer, completeLength[i]) != completeLength[i])
         {
             if (completeLength > 0) fprintf(stderr,"partial write\n");
             else
             {
                 log_error("write error: %s", strerror(errno));
                 //perror("write error");
-                free(ipcsc->buffer);
+                free(buffer);
                 return -1;
             }
         }
         
         //printf("TYPE:    %d\nLENGTH:  %d\nCONTENT: %s\n", messageType, messageLength, msg);
-        free(ipcsc->buffer);
+        free(buffer);
     }
     pthread_mutex_unlock(&ipcsc->mutex);
 

@@ -164,7 +164,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 int main(int argc, char const *argv[])
 {
     int fd = createIPCSocket(PROGRAMMING_SERVICE);
-    communicationService = acceptIPCConnection(fd, COMMUNICATION_SERVICE, messageHandlerIPC);
+    communicationService = acceptIPCConnection(fd, messageHandlerIPC);
     if (communicationService == NULL)
     {
         return -1;
