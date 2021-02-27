@@ -225,7 +225,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         JSON* actuatorDataJSON = JSONCreateArray();
                         for (int i = 0; i < actuatorCount; i++)
                         {
-                            ActuatorDataPacket packet = {actuators[i].actuatorID, actuators[i].value};
+                            ActuatorDataPacket packet = {actuators[i].actuatorID, actuators[i].type, actuators[i].value};
                             JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packet));
                         }
 
