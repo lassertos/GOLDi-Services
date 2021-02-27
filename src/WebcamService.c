@@ -240,6 +240,26 @@ int main(int argc, char const *argv[])
     /* Create the empty pipeline */
     data.pipeline = gst_pipeline_new ("test-pipeline");
 
+    if (!data.videosource) {
+        g_printerr ("Videosource could be created.\n");
+        return -1;
+    }
+
+    if (!data.videoconvert) {
+        g_printerr ("Videoconvert could be created.\n");
+        return -1;
+    }
+
+    if (!data.appsink) {
+        g_printerr ("Appsink could be created.\n");
+        return -1;
+    }
+
+    if (!data.pipeline) {
+        g_printerr ("Pipeline creation failed.\n");
+        return -1;
+    }
+
     if (!data.pipeline || !data.videosource || !data.videoconvert|| !data.appsink) {
         g_printerr ("Not all elements could be created.\n");
         return -1;
