@@ -129,8 +129,9 @@ int parseProtectionRules(char *protectionString)
     }
     for (int i = sensorCount; i < sensorCount+actuatorCount; i++)
     {
+        unsigned int k = i - sensorCount;
         OperandType operandType;
-        if (actuators[i].type == ActuatorTypeBinary)
+        if (actuators[k].type == ActuatorTypeBinary)
         {
             operandType = OperandTypeBinary;
         }
@@ -138,8 +139,7 @@ int parseProtectionRules(char *protectionString)
         {
             operandType = OperandTypeNumber;
         }
-        unsigned int k = i - sensorCount;
-        variables[i] = (Variable){operandType, actuators[k].actuatorID, &actuators[k].value, getValueSizeOfActuatorType(actuators[i].type)};
+        variables[i] = (Variable){operandType, actuators[k].actuatorID, actuators[k].value, getValueSizeOfActuatorType(actuators[k].type)};
     }
 
     JSON* protectionRuleJSON = NULL;

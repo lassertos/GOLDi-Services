@@ -402,7 +402,7 @@
 	"ProtectionRules":
 	[
 		{
-			"Expression":"x0 & x1)",
+			"Expression":"x0 & x1",
 			"ErrorMessage":"Error 0",
 			"ErrorCode":0
 		},

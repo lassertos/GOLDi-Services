@@ -618,7 +618,7 @@ void printBooleanExpression(BooleanExpression *expression)
         printBooleanExpression(expression->rightside);
         printf(")");
     }
-    if (expression->parent == expression)
+    if (expression->parent == NULL)
     {
         printf("\n");
     }
