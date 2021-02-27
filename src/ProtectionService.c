@@ -347,17 +347,11 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             free(stringActuators);
                             break;
                         }
-                        else
-                        {
-                            for (int i = 0; i < actuatorCount; i++)
-                            {
-                                printActuatorData(actuators[i]);  //TODO add debugging flag
-                            }
-                        }
                         actuators = malloc(sizeof(*actuators)*actuatorCount);
                         for (int i = 0; i < actuatorCount; i++)
                         {
                             actuators[i] = incomingActuators[i];
+                            printActuatorData(actuators[i]);  //TODO add debugging flag
                         }
 
                         log_debug("initialization: parsing protection");
