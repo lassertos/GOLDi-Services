@@ -215,7 +215,7 @@ int main(int argc, char const *argv[])
     }
 
     /* Websocket creation */
-    if(websocketPrepareContext(&wsc, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wsc, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_WEBCAMPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }
