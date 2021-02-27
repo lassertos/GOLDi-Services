@@ -22,71 +22,13 @@ static void sigint_handler(int sig)
     exit(0);
 }
 
-/*static int sendSensorValues(SensorDataPacket* packets, unsigned int packetcount)
-{
-    for (int i = 0; i < packetcount; i++)
-    {
-        Sensor* sensor = getSensorWithID(sensors, packets[i].sensorID, sensorCount);
-        if (sensor->type == SensorTypeBinary)
-        {
-            char* data = malloc(2);
-            if (data == NULL)
-            {
-                //TODO error handling
-                return 1;
-            }
-            data[0] = sensor->pinMapping;
-            if (!sensor->value)
-            {
-                data[1] = 0x00;
-            }
-            else
-            {
-                data[1] = 0x80;
-            }
-            executeSPICommand(SPICOMMAND_WRITE_GPIO, data);
-            free(data);
-        }
-    }
-    return 0;
-}*/
-
-//TODO update once spi changes have been made
 static int sendSensorValue(Sensor* sensor)
 {
     if (stopped)
     {
         return 0;
     }
-    switch (sensor->type)
-    {
-        case SensorTypeBinary:
-        {
-            char* data = malloc(2);
-            if (data == NULL)
-            {
-                //TODO error handling
-                log_error("malloc error: %s", strerror(errno));
-                return 1;
-            }
-            data[0] = sensor->pinMapping;
-            if (!sensor->value)
-            {
-                data[1] = 0x00;
-            }
-            else
-            {
-                data[1] = 0x01;
-            }
-            executeSPICommand(SPICOMMAND_WRITE_GPIO, data, &mutexSPI);
-            free(data);
-            return 0;
-        }
-        default:
-        {
-            return 1;
-        }
-    }
+    SPIWriteSensor(sensor, &mutexSPI);
 }
 
 static ActuatorDataPacket* retrieveActuatorValues(unsigned int* packetcount)
@@ -99,27 +41,23 @@ static ActuatorDataPacket* retrieveActuatorValues(unsigned int* packetcount)
     *packetcount = 0;
     for (int i = 0; i < actuatorCount; i++)
     {
-        switch (actuators[i].type)
+        unsigned int valueSize = getValueSizeOfActuatorType(actuators[i].type);
+        unsigned int valueChanged = 0;
+        char* oldValue = malloc(valueSize);
+        memcpy(oldValue, actuators[i].value, valueSize); 
+        SPIReadActuator(&actuators[i], &mutexSPI);
+        for (int j = 0; j < valueSize; j++)
         {
-            case ActuatorTypeBinary:
-            {   
-                long long oldValue = actuators[i].value;
-                char data = i;
-                spiAnswer answer = executeSPICommand(SPICOMMAND_READ_GPIO, &data, &mutexSPI);
-                actuators[i].value = answer.content[0];
-                free(answer.content);
-                if (oldValue != actuators[i].value)
-                {
-                    packets[*packetcount] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].value};
-                    (*packetcount)++;
-                }
-                break;
-            }
-            
-            default:
+            if (oldValue[j] != actuators[i].value[j])
             {
+                valueChanged = 1;
                 break;
             }
+        }
+        if (valueChanged)
+        {
+            packets[*packetcount] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].type, actuators[i].value};
+            (*packetcount)++;
         }
     }
 
@@ -200,7 +138,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                         /* initialize actuators object */
                         char* stringActuators = JSONPrint(actuatorsJSON);
-                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
+                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
                         free(stringActuators);
                         if (actuators == NULL)
                         {
@@ -314,7 +252,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         for (int i = 0; i < actuatorCount; i++)
                         {
                             actuators[i].value = actuators[i].stopValue;
-                            packets[i] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].value};
+                            packets[i] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].type, actuators[i].value};
                         }
 
                         for(int i = 0; i < actuatorCount; i++)

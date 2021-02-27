@@ -57,13 +57,6 @@
 			"SensorName":"CranePositionRight",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the right edge.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -71,13 +64,6 @@
 			"SensorName":"CranePositionLeft",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the left edge.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -85,13 +71,6 @@
 			"SensorName":"ReferencePositionXAxis",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the reference position regarding the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -99,13 +78,6 @@
 			"SensorName":"CranePositionBack",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the back edge.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -113,13 +85,6 @@
 			"SensorName":"CranePositionFront",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the front edge.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -127,13 +92,6 @@
 			"SensorName":"ReferencePositionYAxis",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the reference position regarding the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -141,13 +99,6 @@
 			"SensorName":"CranePositionUp",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the top regarding the Z-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -155,13 +106,6 @@
 			"SensorName":"CranePositionDown",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is at the bottom regarding the Z-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -169,13 +113,6 @@
 			"SensorName":"ProximitySensor",
 			"SensorType":"binary",
 			"SensorDescription":"Indicates whether the crane is in the proximity of this sensor.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -183,13 +120,6 @@
 			"SensorName":"UserButton",
 			"SensorType":"binary",
 			"SensorDescription":"A button which can be switched on and off.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":true
 		},
 		{
@@ -197,13 +127,6 @@
 			"SensorName":"AbsolutePositionX_Bit16",
 			"SensorType":"binary",
 			"SensorDescription":"The 16th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -211,13 +134,6 @@
 			"SensorName":"AbsolutePositionX_Bit15",
 			"SensorType":"binary",
 			"SensorDescription":"The 15th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -225,13 +141,6 @@
 			"SensorName":"AbsolutePositionX_Bit14",
 			"SensorType":"binary",
 			"SensorDescription":"The 14th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -239,13 +148,6 @@
 			"SensorName":"AbsolutePositionX_Bit13",
 			"SensorType":"binary",
 			"SensorDescription":"The 13th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -253,13 +155,6 @@
 			"SensorName":"AbsolutePositionX_Bit12",
 			"SensorType":"binary",
 			"SensorDescription":"The 12th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -267,13 +162,6 @@
 			"SensorName":"AbsolutePositionX_Bit11",
 			"SensorType":"binary",
 			"SensorDescription":"The 11th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -281,13 +169,6 @@
 			"SensorName":"AbsolutePositionX_Bit10",
 			"SensorType":"binary",
 			"SensorDescription":"The 10th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -295,13 +176,6 @@
 			"SensorName":"AbsolutePositionX_Bit9",
 			"SensorType":"binary",
 			"SensorDescription":"The 9th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -309,13 +183,6 @@
 			"SensorName":"AbsolutePositionX_Bit8",
 			"SensorType":"binary",
 			"SensorDescription":"The 8th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -323,13 +190,6 @@
 			"SensorName":"AbsolutePositionX_Bit7",
 			"SensorType":"binary",
 			"SensorDescription":"The 7th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -337,13 +197,6 @@
 			"SensorName":"AbsolutePositionX_Bit6",
 			"SensorType":"binary",
 			"SensorDescription":"The 6th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -351,13 +204,6 @@
 			"SensorName":"AbsolutePositionX_Bit5",
 			"SensorType":"binary",
 			"SensorDescription":"The 5th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -365,13 +211,6 @@
 			"SensorName":"AbsolutePositionX_Bit4",
 			"SensorType":"binary",
 			"SensorDescription":"The 4th bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -379,13 +218,6 @@
 			"SensorName":"AbsolutePositionX_Bit3",
 			"SensorType":"binary",
 			"SensorDescription":"The 3rd bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -393,13 +225,6 @@
 			"SensorName":"AbsolutePositionX_Bit2",
 			"SensorType":"binary",
 			"SensorDescription":"The 2nd bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -407,13 +232,6 @@
 			"SensorName":"AbsolutePositionX_Bit1",
 			"SensorType":"binary",
 			"SensorDescription":"The 1st bit of the current absolute position of the crane on the X-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -421,13 +239,6 @@
 			"SensorName":"AbsolutePositionY_Bit16",
 			"SensorType":"binary",
 			"SensorDescription":"The 16th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -435,13 +246,6 @@
 			"SensorName":"AbsolutePositionY_Bit15",
 			"SensorType":"binary",
 			"SensorDescription":"The 15th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -449,13 +253,6 @@
 			"SensorName":"AbsolutePositionY_Bit14",
 			"SensorType":"binary",
 			"SensorDescription":"The 14th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -463,13 +260,6 @@
 			"SensorName":"AbsolutePositionY_Bit13",
 			"SensorType":"binary",
 			"SensorDescription":"The 13th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -477,13 +267,6 @@
 			"SensorName":"AbsolutePositionY_Bit12",
 			"SensorType":"binary",
 			"SensorDescription":"The 12th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -491,13 +274,6 @@
 			"SensorName":"AbsolutePositionY_Bit11",
 			"SensorType":"binary",
 			"SensorDescription":"The 11th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -505,13 +281,6 @@
 			"SensorName":"AbsolutePositionY_Bit10",
 			"SensorType":"binary",
 			"SensorDescription":"The 10th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -519,13 +288,6 @@
 			"SensorName":"AbsolutePositionY_Bit9",
 			"SensorType":"binary",
 			"SensorDescription":"The 9th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -533,13 +295,6 @@
 			"SensorName":"AbsolutePositionY_Bit8",
 			"SensorType":"binary",
 			"SensorDescription":"The 8th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -547,13 +302,6 @@
 			"SensorName":"AbsolutePositionY_Bit7",
 			"SensorType":"binary",
 			"SensorDescription":"The 7th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -561,13 +309,6 @@
 			"SensorName":"AbsolutePositionY_Bit6",
 			"SensorType":"binary",
 			"SensorDescription":"The 6th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -575,13 +316,6 @@
 			"SensorName":"AbsolutePositionY_Bit5",
 			"SensorType":"binary",
 			"SensorDescription":"The 5th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -589,13 +323,6 @@
 			"SensorName":"AbsolutePositionY_Bit4",
 			"SensorType":"binary",
 			"SensorDescription":"The 4th bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -603,13 +330,6 @@
 			"SensorName":"AbsolutePositionY_Bit3",
 			"SensorType":"binary",
 			"SensorDescription":"The 3rd bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -617,13 +337,6 @@
 			"SensorName":"AbsolutePositionY_Bit2",
 			"SensorType":"binary",
 			"SensorDescription":"The 2nd bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		},
 		{
@@ -631,13 +344,6 @@
 			"SensorName":"AbsolutePositionY_Bit1",
 			"SensorType":"binary",
 			"SensorDescription":"The 1st bit of the current absolute position of the crane on the Y-Axis.",
-			"SensorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"SensorMathExpression":null,
 			"SensorIsVirtual":false
 		}
 	],
@@ -648,199 +354,150 @@
 			"ActuatorName":"CraneDriveRight",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane to the right.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y1",
 			"ActuatorName":"CraneDriveLeft",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane to the left.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y2",
 			"ActuatorName":"CraneDriveBack",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane to the back.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y3",
 			"ActuatorName":"CraneDriveFront",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane to the front.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y4",
 			"ActuatorName":"CraneDriveUp",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane upwards.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y5",
 			"ActuatorName":"CraneDriveDown",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Drives the crane downwards.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		},
 		{
 			"ActuatorID":"y6",
 			"ActuatorName":"ElectromagnetSwitch",
 			"ActuatorType":"binary",
 			"ActuatorDescription":"Switches the electromagnet on or off.",
-			"ActuatorCommand":
-			{
-				"Command":[],
-				"DataLength":0,
-				"AnswerLength":0
-			},
-			"ActuatorStopValue":0,
-			"ActuatorMathExpression":null
+			"ActuatorStopValue":0
 		}
 	],
 	"ProtectionRules":
 	[
 		{
-			"Expression":"(x0 = 1) & (x1 = 1)",
+			"Expression":"x0 & x1)",
 			"ErrorMessage":"Error 0",
 			"ErrorCode":0
 		},
 		{
-			"Expression":"(x0 = 1) & (x2 = 1)",
+			"Expression":"x0 & x2",
 			"ErrorMessage":"Error 1",
 			"ErrorCode":1
 		},
 		{
-			"Expression":"(x1 = 1) & (x2 = 1)",
+			"Expression":"x1 & x2",
 			"ErrorMessage":"Error 2",
 			"ErrorCode":2
 		},
 		{
-			"Expression":"(x3 = 1) & (x4 = 1)",
+			"Expression":"x3 & x4",
 			"ErrorMessage":"Error 3",
 			"ErrorCode":3
 		},
 		{
-			"Expression":"(x3 = 1) & (x5 = 1)",
+			"Expression":"x3 & x5",
 			"ErrorMessage":"Error 4",
 			"ErrorCode":4
 		},
 		{
-			"Expression":"(x4 = 1) & (x5 = 1)",
+			"Expression":"x4 & x5",
 			"ErrorMessage":"Error 5",
 			"ErrorCode":5
 		},
 		{
-			"Expression":"(x6 = 1) & (x7 = 1)",
+			"Expression":"x6 & x7",
 			"ErrorMessage":"Error 6",
 			"ErrorCode":6
 		},
 		{
-			"Expression":"(y0 = 1) & (y1 = 1)",
+			"Expression":"y0 & y1",
 			"ErrorMessage":"Error 7",
 			"ErrorCode":7
 		},
 		{
-			"Expression":"(y2 = 1) & (y3 = 1)",
+			"Expression":"y2 & y3",
 			"ErrorMessage":"Error 8",
 			"ErrorCode":8
 		},
 		{
-			"Expression":"(y4 = 1) & (y5 = 1)",
+			"Expression":"y4 & y5",
 			"ErrorMessage":"Error 9",
 			"ErrorCode":9
 		},
 		{
-			"Expression":"(y0 = 1) & (x6 = 0)",
+			"Expression":"y0 & !x6",
 			"ErrorMessage":"Error 10",
 			"ErrorCode":10
 		},
 		{
-			"Expression":"(y1 = 1) & (x6 = 0)",
+			"Expression":"y1 & !x6",
 			"ErrorMessage":"Error 11",
 			"ErrorCode":11
 		},
 		{
-			"Expression":"(y2 = 1) & (x6 = 0)",
+			"Expression":"y2 & !x6",
 			"ErrorMessage":"Error 12",
 			"ErrorCode":12
 		},
 		{
-			"Expression":"(y3 = 1) & (x6 = 0)",
+			"Expression":"y3 & !x6",
 			"ErrorMessage":"Error 13",
 			"ErrorCode":13
 		},
 		{
-			"Expression":"(y0 = 1) & (x0 = 1)",
+			"Expression":"y0 & x0",
 			"ErrorMessage":"Error 14",
 			"ErrorCode":14
 		},
 		{
-			"Expression":"(y1 = 1) & (x1 = 1)",
+			"Expression":"y1 & x1",
 			"ErrorMessage":"Error 15",
 			"ErrorCode":15
 		},
 		{
-			"Expression":"(y2 = 1) & (x3 = 1)",
+			"Expression":"y2 & x3",
 			"ErrorMessage":"Error 16",
 			"ErrorCode":16
 		},
 		{
-			"Expression":"(y3 = 1) & (x4 = 1)",
+			"Expression":"y3 & x4",
 			"ErrorMessage":"Error 17",
 			"ErrorCode":17
 		},
 		{
-			"Expression":"(y4 = 1) & (x6 = 1)",
+			"Expression":"y4 & x6",
 			"ErrorMessage":"Error 18",
 			"ErrorCode":18
 		},
 		{
-			"Expression":"(y5 = 1) & (x7 = 1)",
+			"Expression":"y5 & x7",
 			"ErrorMessage":"Error 19",
 			"ErrorCode":19
 		}

@@ -18,7 +18,7 @@ StateMachineExecution execution = {NULL, 0};
 
 ActuatorDataPacket StateMachineOutputToActuatorDataPacket(StateMachineOutput output)
 {
-    ActuatorDataPacket packet = {output.actuatorID, output.value};
+    ActuatorDataPacket packet = {output.actuatorID, output.type, output.value};
     return packet;
 }
 
@@ -136,13 +136,22 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             variables = malloc(sizeof(*variables) * sensorCount);
                             for (int i = 0; i < sensorCount; i++)
                             {
-                                //printSensorData(sensors[i]);
-                                variables[i] = (Variable){sensors[i].sensorID, &sensors[i].value};
+                                printSensorData(sensors[i]);   // TODO add debugging flag
+                                OperandType operandType;
+                                if (sensors[i].type == SensorTypeBinary)
+                                {
+                                    operandType = OperandTypeBinary;
+                                }
+                                else
+                                {
+                                    operandType = OperandTypeNumber;
+                                }
+                                variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
                             }
                         }
 
                         log_debug("initialization: parsing actuators");
-                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
+                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
                         if (actuators == NULL)
                         {
                             log_error("initialization: actuators could not be parsed successfully");
@@ -155,12 +164,12 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                //printActuatorData(actuators[i]);
+                                printActuatorData(actuators[i]);   // TODO add debugging flag
                             }
                         }
 
                         log_debug("initialization: parsing state machines of initializers");
-                        stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount, &stateMachineCount);
+                        stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount, actuators, actuatorCount, &stateMachineCount);
                         if (stateMachines == NULL)
                         {
                             log_error("initialization: state machines of initializers could not be parsed successfully");
@@ -173,7 +182,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < stateMachineCount; i++)
                             {
-                                //printStateMachineInfo(&stateMachines[i]);
+                                printStateMachineInfo(&stateMachines[i]);   // TODO add debugging flag
                             }
                         }
 
@@ -193,7 +202,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     {
                         log_debug("receiving new sensor data");
                         unsigned int newSensorDataCount = 0;
-                        SensorDataPacket* sensorDataPackets = parseActuatorDataPackets(msg.content, msg.length, &newSensorDataCount);
+                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
                         if (sensorDataPackets == NULL)
                         {
                             //TODO error handling
@@ -204,7 +213,6 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             {
                                 Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
                                 sensor->value = sensorDataPackets[i].value;
-                                sensor->valueDouble = (double)sensorDataPackets[i].value;
                                 free(sensorDataPackets[i].sensorID);
                             }
                         }

@@ -10,7 +10,7 @@ Stack = utils/stack.h utils/stack.c
 Queue = utils/queue.h utils/queue.c
 JSON = parsers/json.h parsers/json.c
 SensorsActuators = interfaces/SensorsActuators.h interfaces/SensorsActuators.c
-ExpressionParsers = parsers/ExpressionParsers.h parsers/tinyexpr.h parsers/tinyexpr.c parsers/BooleanExpressionParser.c parsers/MathematicalExpression.c
+BooleanExpressionParser = parsers/BooleanExpressionParser.h parsers/BooleanExpressionParser.c
 StateMachine = parsers/StateMachine.h parsers/StateMachine.c
 Programmers = programmer/goldi-programmer.h programmer/bcmGPIO.h programmer/avr-programmer.c programmer/bcmGPIO.c programmer/goldi-svf-player.c
 Logging = logging/log.h logging/log.c
@@ -37,12 +37,12 @@ GOLDiWebcamService_LDADD = $(LWS_LIBS) -lcjson -lsystemd -lpthread $(GSTREAMER_L
 GOLDiWebcamService_LDFLAGS = $(LWS_CFLAGS) $(GSTREAMER_CFLAGS)
 GOLDiWebcamService_CPPFLAGS = -g -O0
 
-GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(ExpressionParsers) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
-GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson -lm
+GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(BooleanExpressionParser) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
+GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson
 GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
 
-GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(ExpressionParsers) $(Stack) $(Queue) $(IPCSockets) $(Logging)
-GOLDiInitializationService_LDADD = -lcjson -lm -lpthread -lsystemd
+GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(BooleanExpressionParser) $(Stack) $(Queue) $(IPCSockets) $(Logging)
+GOLDiInitializationService_LDADD = -lcjson -lpthread -lsystemd
 GOLDiInitializationService_CPPFLAGS = -g -O0
 
 GOLDiProgrammingService_SOURCES = ProgrammingService.c $(IPCSockets) $(Utils) $(Programmers) $(Logging)

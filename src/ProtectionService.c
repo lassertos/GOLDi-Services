@@ -7,6 +7,7 @@
 #include "interfaces/SensorsActuators.h"
 #include "utils/utils.h"
 #include "logging/log.h"
+#include "parsers/BooleanExpressionParser.h"
 
 /* all possible error types */
 typedef enum
@@ -115,12 +116,30 @@ int parseProtectionRules(char *protectionString)
     Variable* variables = malloc(sizeof(*variables)*(sensorCount+actuatorCount));
     for (int i = 0; i < sensorCount; i++)
     {
-        variables[i] = (Variable){sensors[i].sensorID, &sensors[i].value};
+        OperandType operandType;
+        if (sensors[i].type == SensorTypeBinary)
+        {
+            operandType = OperandTypeBinary;
+        }
+        else
+        {
+            operandType = OperandTypeNumber;
+        }
+        variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
     }
     for (int i = sensorCount; i < sensorCount+actuatorCount; i++)
     {
+        OperandType operandType;
+        if (actuators[i].type == ActuatorTypeBinary)
+        {
+            operandType = OperandTypeBinary;
+        }
+        else
+        {
+            operandType = OperandTypeNumber;
+        }
         unsigned int k = i - sensorCount;
-        variables[i] = (Variable){actuators[k].actuatorID, &actuators[k].value};
+        variables[i] = (Variable){operandType, actuators[k].actuatorID, &actuators[k].value, getValueSizeOfActuatorType(actuators[i].type)};
     }
 
     JSON* protectionRuleJSON = NULL;
@@ -171,7 +190,7 @@ int parseProtectionRules(char *protectionString)
 
     for (int i = 0; i < Protectionrules.count; i++)
     {
-        //printProtectionRule(Protectionrules.rules[i]);
+        printProtectionRule(Protectionrules.rules[i]);  //TODO add debugging flag
     }
 
     return 0;
@@ -192,8 +211,8 @@ static void stopPhysicalSystem(void)
     stoppedPS = 1;
     for (int i = 0; i < actuatorCount; i++)
     {
-        spiAnswer answer = executeSPICommand(actuators[i].command, actuators[i].stopData, &mutexSPI);
-        free(answer.content);
+        memcpy(actuators[i].value, actuators[i].stopValue, getValueSizeOfActuatorType(actuators[i].type));
+        SPIWriteActuator(&actuators[i], &mutexSPI);
     }
 }
 
@@ -313,32 +332,32 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         {
                             for (int i = 0; i < sensorCount; i++)
                             {
-                                //printSensorData(sensors[i]);
+                                printSensorData(sensors[i]);  //TODO add debugging flag
                             }
                         }
 
                         log_debug("initialization: parsing actuators");
-                        incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount);
-                        actuators = malloc(sizeof(*actuators)*actuatorCount);
-                        for (int i = 0; i < actuatorCount; i++)
-                        {
-                            actuators[i] = incomingActuators[i];
-                        }
-                        free(stringActuators);
+                        incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
                         if (incomingActuators == NULL)
                         {
                             log_error("initialization: actuators could not be parsed successfully");
                             char* result = serializeInt(0);
                             sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                             free(result);
+                            free(stringActuators);
                             break;
                         }
                         else
                         {
                             for (int i = 0; i < actuatorCount; i++)
                             {
-                                //printActuatorData(actuators[i]);
+                                printActuatorData(actuators[i]);  //TODO add debugging flag
                             }
+                        }
+                        actuators = malloc(sizeof(*actuators)*actuatorCount);
+                        for (int i = 0; i < actuatorCount; i++)
+                        {
+                            actuators[i] = incomingActuators[i];
                         }
 
                         log_debug("initialization: parsing protection");
@@ -394,7 +413,6 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             if (sensors[i].isVirtual && virtualIndex == userVariable)
                             {
                                 sensors[i].value = value;
-                                sensors[i].valueDouble = (double)value;
                             }
                             else if (sensors[i].isVirtual)
                             {
@@ -421,7 +439,6 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                                 Actuator* actuator = getActuatorWithID(incomingActuators, actuatorDataPackets[i].actuatorID, actuatorCount);
                                 log_debug("actuator value: %lld -> %lld", actuator->value, actuatorDataPackets[i].value);
                                 actuator->value = actuatorDataPackets[i].value;
-                                actuator->valueDouble = (double)actuatorDataPackets[i].value;
                                 free(actuatorDataPackets[i].actuatorID);
                             }
                         }
@@ -453,7 +470,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         log_debug("preparing sensor data packets");
                         for (int i = 0; i < sensorCount; i++)
                         {
-                            packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].value};
+                            packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].type, sensors[i].value};
                             JSONAddItemToArray(packetsJSON, SensorDataPacketToJSON(packets[i]));
                         }
                         
@@ -533,24 +550,30 @@ int main(int argc, char const *argv[])
         /* Poll the new sensor values and forward them to communication service if the value changed */
         if (!stoppedPS)
         {
-            long long oldSensorValues[sensorCount];
             //TODO check for NULL?
             JSON* sensorDataMsgJSON = JSONCreateObject();
             JSON* sensorDataJSON = JSONCreateArray();
             for (int i = 0; i < sensorCount; i++)
             {
-                oldSensorValues[i] = sensors[i].value;
-                char data = sensors[i].pinMapping;
-                //TODO update once spi changes have been made
-                spiAnswer answer = executeSPICommand(SPICOMMAND_READ_GPIO, &data, &mutexSPI);
-                SPIAnswerToSensorValue(&sensors[i], answer);
-                if(answer.length > 0)
+                unsigned int valueChanged = 0;
+                unsigned int valueSize = getValueSizeOfActuatorType(actuators[i].type);
+                char* oldValue = malloc(valueSize);
+                memcpy(oldValue, sensors[i].value, valueSize);
+
+                SPIReadSensor(&sensors[i], &mutexSPI);
+
+                for (int j = 0; j < valueSize; j++)
                 {
-                    free(answer.content);
+                    if (oldValue[j] != sensors[i].value[j])
+                    {
+                        valueChanged = 1;
+                        break;
+                    }
                 }
-                if (oldSensorValues[i] != sensors[i].value)
+
+                if (valueChanged)
                 {
-                    SensorDataPacket packet = (SensorDataPacket){sensors[i].sensorID, sensors[i].value};
+                    SensorDataPacket packet = (SensorDataPacket){sensors[i].sensorID, sensors[i].type, sensors[i].value};
                     JSON* packetJSON = SensorDataPacketToJSON(packet);
                     JSONAddItemToArray(sensorDataJSON, packetJSON);
                 }
@@ -609,7 +632,7 @@ int main(int argc, char const *argv[])
                             JSON* sensorDataJSON = JSONCreateArray();
                             for (int i = 0; i < sensorCount; i++)
                             {
-                                SensorDataPacket packet = (SensorDataPacket){sensors[i].sensorID, sensors[i].value};
+                                SensorDataPacket packet = (SensorDataPacket){sensors[i].sensorID, sensors[i].type, sensors[i].value};
                                 JSON* packetJSON = SensorDataPacketToJSON(packet);
                                 JSONAddItemToArray(sensorDataJSON, packetJSON);
                             }
@@ -656,18 +679,7 @@ int main(int argc, char const *argv[])
             /* Send the CurrentActuator values to the FPGA */
             for (int i = 0; i < actuatorCount; i++)
             {
-                spiAnswer answer;
-                //TODO update once spi changes have been made
-                char* data = ActuatorValueToSPIData(&actuators[i]);
-                char* completeData = malloc(SPICOMMAND_WRITE_GPIO.dataLength);
-                completeData[0] = actuators[i].pinMapping;
-                //TODO remove dirty temporary fix (fix experimentdata)
-                completeData[1] = actuators[i].value != 0;
-                //memcpy(completeData+1, data, SPICOMMAND_WRITE_GPIO.dataLength - 1);
-                answer = executeSPICommand(SPICOMMAND_WRITE_GPIO, completeData, &mutexSPI);
-                free(data);
-                free(answer.content);
-                free(completeData);
+                SPIWriteActuator(&actuators[i], &mutexSPI);
             }
         }
     }
