@@ -258,6 +258,7 @@ int main(int argc, char const *argv[])
 
     if (!data.pipeline || !data.videosource || !data.videoconvert|| !data.appsink) {
         g_printerr ("Not all elements could be created.\n");
+        sleep(10);
         return -1;
     }
 
