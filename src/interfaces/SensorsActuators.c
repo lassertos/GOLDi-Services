@@ -289,6 +289,9 @@ Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount, uns
             return NULL;
         }
 
+        printf("TEST");
+        printf("VALUE:%d\n", actuatorStopValue->valueint);
+
         actuators[currentIndex].value = unbeautifyActuatorValue(actuatorStopValue, actuators[currentIndex].type);
         actuators[currentIndex].stopValue = unbeautifyActuatorValue(actuatorStopValue, actuators[currentIndex].type);
         currentIndex++;
