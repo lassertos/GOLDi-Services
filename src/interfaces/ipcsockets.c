@@ -116,11 +116,11 @@ IPCSocketConnection* connectToIPCSocket(char* socketname, IPCMsgHandler messageH
 IPCSocketConnection* acceptIPCConnection(int fd, IPCMsgHandler messageHandler)
 {
     IPCSocketConnection* connection = malloc(sizeof *connection);
-    struct sockaddr *address; 
-    socklen_t *addressLength;
+    struct sockaddr address; 
+    int addressLength = sizeof(address);
     connection->open = 1;
 
-    if ((connection->fd = accept(fd, address, addressLength)) == -1) 
+    if ((connection->fd = accept(fd, (struct sockaddr*)&address, &addressLength)) == -1) 
     {
         free(connection);
         log_error("accept error: %s", strerror(errno));
@@ -128,9 +128,9 @@ IPCSocketConnection* acceptIPCConnection(int fd, IPCMsgHandler messageHandler)
         return NULL;
     }
 
-    connection->socketname = malloc(*addressLength+1);
-    memcpy(connection->socketname, address->sa_data, *addressLength);
-    connection->socketname[*addressLength] = 0;
+    connection->socketname = malloc(addressLength+1);
+    memcpy(connection->socketname, address.sa_data, addressLength);
+    connection->socketname[addressLength] = 0;
 
     pthread_mutex_init(&connection->mutex, NULL);
 
