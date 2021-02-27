@@ -39,7 +39,7 @@ GOLDiWebcamService_CPPFLAGS = -g -O0
 
 GOLDiProtectionService_SOURCES = ProtectionService.c $(IPCSockets) $(SPI) $(JSON) $(BooleanExpressionParser) $(Stack) $(Queue) $(Utils) $(SensorsActuators) $(Logging)
 GOLDiProtectionService_LDADD = -lsystemd -lpthread -lbcm2835 -lcjson
-GOLDiProtectionService_CPPFLAGS = -DEXTENDED_SENSORS_ACTUATORS -g -O0
+GOLDiProtectionService_CPPFLAGS = -g -O0
 
 GOLDiInitializationService_SOURCES = InitializationService.c $(JSON) $(Utils) $(StateMachine) $(SensorsActuators) $(BooleanExpressionParser) $(Stack) $(Queue) $(IPCSockets) $(Logging)
 GOLDiInitializationService_LDADD = -lcjson -lpthread -lsystemd
