@@ -118,6 +118,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             break;
         }
     }
+    return 0;
 }
 
 static int handleWebsocketMessage(struct lws* wsi, char* message)

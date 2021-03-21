@@ -34,7 +34,7 @@ typedef struct
 {
     int             fd;
     char*           socketname;
-    int             open;
+    volatile int    open;
     pthread_mutex_t mutex;
     pthread_t       thread;
 } IPCSocketConnection;

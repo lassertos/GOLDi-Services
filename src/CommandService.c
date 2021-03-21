@@ -317,6 +317,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
             break;
         }
     }
+    return 0;
 }
 
 int main(int argc, char const *argv[])

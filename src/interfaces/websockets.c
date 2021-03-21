@@ -25,7 +25,6 @@ static void handleWebsocket(websocketConnection* wsc)
     while(!wsc->interrupted && (lws_service(wsc->context, 0) >= 0));
     wsc->interrupted = 1;
     lws_context_destroy(wsc->context);
-	pthread_exit(NULL);
 	lwsl_user("Completed\n");
     return;
 }
