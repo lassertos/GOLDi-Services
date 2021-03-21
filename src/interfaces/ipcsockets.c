@@ -323,6 +323,7 @@ void closeIPCConnection(IPCSocketConnection* ipcsc)
         sendMessageIPC(ipcsc, IPCMSGTYPE_CLOSEDCONNECTION, NULL, 0);
         close(ipcsc->fd);
         ipcsc->open = 0;
+        log_debug("closing connection to %s", ipcsc->socketname);
         pthread_join(ipcsc->thread, NULL);
         log_info("closed connection to %s", ipcsc->socketname);
         //printf("closed connection to %s\n", ipcsc->socketname);

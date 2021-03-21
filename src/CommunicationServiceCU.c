@@ -43,6 +43,7 @@ static void signal_handler(int sig)
             wscPhysicalSystem.interrupted = 1;
             pthread_join(wscPhysicalSystem.thread, NULL);
         }
+        log_debug("websocket connections closed");
         if(commandService && commandService->open)
             closeIPCConnection(commandService);
         if(programmingService && programmingService->open)
