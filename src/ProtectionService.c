@@ -251,265 +251,258 @@ static void handleDelayBasedFault(DelayBasedFault* fault)
  */
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
-    while(1)
+    while(ipcsc->open)
     {
-        if(ipcsc->open)
+        if(hasMessages(ipcsc))
         {
-            while(hasMessages(ipcsc))
+            log_debug("receiving IPC message");
+            Message msg = receiveMessageIPC(ipcsc);
+            //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+            switch (msg.type)
             {
-                log_debug("receiving IPC message");
-                Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
-                switch (msg.type)
+                case IPCMSGTYPE_INITPROTECTIONSERVICE:
                 {
-                    case IPCMSGTYPE_INITPROTECTIONSERVICE:
+                    log_debug("initialization: starting initialization");
+                    log_debug("initialization: parsing message content to json");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    if (msgJSON == NULL)
                     {
-                        log_debug("initialization: starting initialization");
-                        log_debug("initialization: parsing message content to json");
-                        JSON* msgJSON = JSONParse(msg.content);
-                        if (msgJSON == NULL)
-                        {
-                            log_error("initialization: IPC message could not be parsed to JSON");
-                            break;
-                        }
-                        log_debug("initialization: parsing sensors as json from message json");
-                        JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
-                        if (sensorsJSON == NULL)
-                        {
-                            log_error("initialization: sensors not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: parsing actuators as json from message json");
-                        JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
-                        if (actuatorsJSON == NULL)
-                        {
-                            log_error("initialization: actuators not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: parsing protection as json from message json");
-                        JSON* protectionRulesJSON = JSONGetObjectItem(msgJSON, "ProtectionRules");
-                        if (protectionRulesJSON == NULL)
-                        {
-                            log_error("initialization: protection not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: converting sensors json to string");
-                        char* stringSensors = JSONPrint(sensorsJSON);
-                        if (stringSensors == NULL)
-                        {
-                            log_error("initialization: sensors json could not be parsed to string");
-                            break;
-                        }
-                        log_debug("initialization: converting actuators json to string");
-                        char* stringActuators = JSONPrint(actuatorsJSON);
-                        if (stringActuators == NULL)
-                        {
-                            log_error("initialization: actuators json could not be parsed to string");
-                            break;
-                        }
-                        log_debug("initialization: converting protection json to string");
-                        char* stringProtectionRules = JSONPrint(protectionRulesJSON);
-                        if (stringProtectionRules == NULL)
-                        {
-                            log_error("initialization: protection json could not be parsed to string");
-                            break;
-                        }
+                        log_error("initialization: IPC message could not be parsed to JSON");
+                        break;
+                    }
+                    log_debug("initialization: parsing sensors as json from message json");
+                    JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
+                    if (sensorsJSON == NULL)
+                    {
+                        log_error("initialization: sensors not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: parsing actuators as json from message json");
+                    JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
+                    if (actuatorsJSON == NULL)
+                    {
+                        log_error("initialization: actuators not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: parsing protection as json from message json");
+                    JSON* protectionRulesJSON = JSONGetObjectItem(msgJSON, "ProtectionRules");
+                    if (protectionRulesJSON == NULL)
+                    {
+                        log_error("initialization: protection not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: converting sensors json to string");
+                    char* stringSensors = JSONPrint(sensorsJSON);
+                    if (stringSensors == NULL)
+                    {
+                        log_error("initialization: sensors json could not be parsed to string");
+                        break;
+                    }
+                    log_debug("initialization: converting actuators json to string");
+                    char* stringActuators = JSONPrint(actuatorsJSON);
+                    if (stringActuators == NULL)
+                    {
+                        log_error("initialization: actuators json could not be parsed to string");
+                        break;
+                    }
+                    log_debug("initialization: converting protection json to string");
+                    char* stringProtectionRules = JSONPrint(protectionRulesJSON);
+                    if (stringProtectionRules == NULL)
+                    {
+                        log_error("initialization: protection json could not be parsed to string");
+                        break;
+                    }
 
-                        JSONDelete(msgJSON);
+                    JSONDelete(msgJSON);
 
-                        log_debug("initialization: parsing sensors");
-                        sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
-                        free(stringSensors);
-                        if (sensors == NULL)
-                        {
-                            log_error("initialization: sensors could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
-                            free(result);
-                            break;
-                        }
-                        else
-                        {
-                            for (int i = 0; i < sensorCount; i++)
-                            {
-                                printSensorData(sensors[i]);  //TODO add debugging flag
-                            }
-                        }
-
-                        log_debug("initialization: parsing actuators");
-                        incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
-                        if (incomingActuators == NULL)
-                        {
-                            log_error("initialization: actuators could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
-                            free(result);
-                            free(stringActuators);
-                            break;
-                        }
-                        actuators = malloc(sizeof(*actuators)*actuatorCount);
-                        for (int i = 0; i < actuatorCount; i++)
-                        {
-                            actuators[i] = incomingActuators[i];
-                            printActuatorData(actuators[i]);  //TODO add debugging flag
-                        }
-
-                        log_debug("initialization: parsing protection");
-                        if (parseProtectionRules(stringProtectionRules))
-                        {
-                            log_error("initialization: protection could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
-                            free(result);
-                            free(stringProtectionRules);
-                            break;
-                        }
-                        free(stringProtectionRules);
-                        delayBasedFaults.maxCount = 0;
-                        for (int i = 0; i < Protectionrules.count; i++)
-                        {
-                            if (Protectionrules.rules[i].errorType == DELAY_ERROR)
-                            {
-                                delayBasedFaults.maxCount++;
-                            }
-                        }
-                        delayBasedFaults.faults = malloc(sizeof(*delayBasedFaults.faults)*delayBasedFaults.maxCount);
-                        unsigned int currentFaultIndex = 0;
-                        for (int i = 0; i < Protectionrules.count; i++)
-                        {
-                            if (Protectionrules.rules[i].errorType == DELAY_ERROR)
-                            {
-                                delayBasedFaults.faults[currentFaultIndex].isActive = 0;
-                                delayBasedFaults.faults[currentFaultIndex].rule = &Protectionrules.rules[i];
-                                currentFaultIndex++;
-                            }
-                        }
-
-                        log_debug("initialization: sending result to Communication Service");
-                        char* result = serializeInt(1);
+                    log_debug("initialization: parsing sensors");
+                    sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
+                    free(stringSensors);
+                    if (sensors == NULL)
+                    {
+                        log_error("initialization: sensors could not be parsed successfully");
+                        char* result = serializeInt(0);
                         sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
                         free(result);
-                        initialized = 1;
-
                         break;
                     }
-
-                    case IPCMSGTYPE_SETUSERVARIABLE:
+                    else
                     {
-                        log_debug("received new value for user variable");
-                        //TODO maybe rename variables as these are still the names of the old system and maybe change their content too
-                        JSON* msgJSON = JSONParse(msg.content);
-                        unsigned int userVariable = JSONGetObjectItem(msgJSON, "Variable")->valueint;   //the index of the virtual sensor (looking only at the virtual sensors)
-                        long long value = JSONGetObjectItem(msgJSON, "State")->valueint;                //the new value of the virtual sensor
-                        unsigned int virtualIndex = 0;                                                  //keeps track of the number of virtual sensors we have already seen
                         for (int i = 0; i < sensorCount; i++)
                         {
-                            if (sensors[i].isVirtual && virtualIndex == userVariable)
-                            {
-                                sensors[i].value = value;
-                            }
-                            else if (sensors[i].isVirtual)
-                            {
-                                virtualIndex++;
-                            }
+                            printSensorData(sensors[i]);  //TODO add debugging flag
                         }
-                        JSONDelete(msgJSON);
-                        break;
                     }
 
-                    case IPCMSGTYPE_ACTUATORDATA:
+                    log_debug("initialization: parsing actuators");
+                    incomingActuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
+                    if (incomingActuators == NULL)
                     {
-                        log_debug("received new actuator data");
-                        unsigned int newActuatorDataCount = 0;
-                        ActuatorDataPacket* actuatorDataPackets = parseActuatorDataPackets(msg.content, msg.length, &newActuatorDataCount);
-                        if (actuatorDataPackets == NULL)
+                        log_error("initialization: actuators could not be parsed successfully");
+                        char* result = serializeInt(0);
+                        sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
+                        free(result);
+                        free(stringActuators);
+                        break;
+                    }
+                    actuators = malloc(sizeof(*actuators)*actuatorCount);
+                    for (int i = 0; i < actuatorCount; i++)
+                    {
+                        actuators[i] = incomingActuators[i];
+                        printActuatorData(actuators[i]);  //TODO add debugging flag
+                    }
+
+                    log_debug("initialization: parsing protection");
+                    if (parseProtectionRules(stringProtectionRules))
+                    {
+                        log_error("initialization: protection could not be parsed successfully");
+                        char* result = serializeInt(0);
+                        sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
+                        free(result);
+                        free(stringProtectionRules);
+                        break;
+                    }
+                    free(stringProtectionRules);
+                    delayBasedFaults.maxCount = 0;
+                    for (int i = 0; i < Protectionrules.count; i++)
+                    {
+                        if (Protectionrules.rules[i].errorType == DELAY_ERROR)
                         {
-                            //TODO error handling
+                            delayBasedFaults.maxCount++;
                         }
-                        else
+                    }
+                    delayBasedFaults.faults = malloc(sizeof(*delayBasedFaults.faults)*delayBasedFaults.maxCount);
+                    unsigned int currentFaultIndex = 0;
+                    for (int i = 0; i < Protectionrules.count; i++)
+                    {
+                        if (Protectionrules.rules[i].errorType == DELAY_ERROR)
                         {
-                            for (int i = 0; i < newActuatorDataCount; i++)
-                            {
-                                Actuator* actuator = getActuatorWithID(incomingActuators, actuatorDataPackets[i].actuatorID, actuatorCount);
-                                log_debug("actuator value: %lld -> %lld", actuator->value, actuatorDataPackets[i].value);
-                                actuator->value = actuatorDataPackets[i].value;
-                                free(actuatorDataPackets[i].actuatorID);
-                            }
+                            delayBasedFaults.faults[currentFaultIndex].isActive = 0;
+                            delayBasedFaults.faults[currentFaultIndex].rule = &Protectionrules.rules[i];
+                            currentFaultIndex++;
                         }
-                        free(actuatorDataPackets);
-                        break;
                     }
 
-                    case IPCMSGTYPE_RUNPHYSICALSYSTEM:
-                    {
-                        log_debug("received start signal for physical system");
-                        startPhysicalSystem();
-                        break;
-                    }
+                    log_debug("initialization: sending result to Communication Service");
+                    char* result = serializeInt(1);
+                    sendMessageIPC(communicationService, IPCMSGTYPE_INITPROTECTIONFINISHED, result, 4);
+                    free(result);
+                    initialized = 1;
 
-                    case IPCMSGTYPE_STOPPHYSICALSYSTEM:
-                    {
-                        log_debug("received stop signal for physical system");
-                        stopPhysicalSystem();
-                        break;
-                    }
-
-                    case IPCMSGTYPE_EXPERIMENTINIT:
-                    {
-                        log_debug("received initialization message for experiment");
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSON* packetsJSON = JSONCreateArray();
-                        SensorDataPacket* packets = malloc(sizeof(*packets)*sensorCount);
-
-                        log_debug("preparing sensor data packets");
-                        for (int i = 0; i < sensorCount; i++)
-                        {
-                            packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].type, sensors[i].value};
-                            JSONAddItemToArray(packetsJSON, SensorDataPacketToJSON(packets[i]));
-                        }
-                        
-                        free(packets);
-                        JSONAddItemToObject(msgJSON, "SensorData", packetsJSON);
-                        
-                        log_debug("sending result of experiment initialization");
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_EXPERIMENTINIT, message, strlen(message));
-                        free(message);
-
-                        JSONDelete(msgJSON);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INTERRUPTED:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return -1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_CLOSEDCONNECTION:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return 0;
-                        break;
-                    }
-
-                    default:
-                    {
-                        log_error("received message of unknown type");
-                        break;
-                    }
+                    break;
                 }
-                free(msg.content); 
+
+                case IPCMSGTYPE_SETUSERVARIABLE:
+                {
+                    log_debug("received new value for user variable");
+                    //TODO maybe rename variables as these are still the names of the old system and maybe change their content too
+                    JSON* msgJSON = JSONParse(msg.content);
+                    unsigned int userVariable = JSONGetObjectItem(msgJSON, "Variable")->valueint;   //the index of the virtual sensor (looking only at the virtual sensors)
+                    long long value = JSONGetObjectItem(msgJSON, "State")->valueint;                //the new value of the virtual sensor
+                    unsigned int virtualIndex = 0;                                                  //keeps track of the number of virtual sensors we have already seen
+                    for (int i = 0; i < sensorCount; i++)
+                    {
+                        if (sensors[i].isVirtual && virtualIndex == userVariable)
+                        {
+                            sensors[i].value = value;
+                        }
+                        else if (sensors[i].isVirtual)
+                        {
+                            virtualIndex++;
+                        }
+                    }
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_ACTUATORDATA:
+                {
+                    log_debug("received new actuator data");
+                    unsigned int newActuatorDataCount = 0;
+                    ActuatorDataPacket* actuatorDataPackets = parseActuatorDataPackets(msg.content, msg.length, &newActuatorDataCount);
+                    if (actuatorDataPackets == NULL)
+                    {
+                        //TODO error handling
+                    }
+                    else
+                    {
+                        for (int i = 0; i < newActuatorDataCount; i++)
+                        {
+                            Actuator* actuator = getActuatorWithID(incomingActuators, actuatorDataPackets[i].actuatorID, actuatorCount);
+                            log_debug("actuator value: %lld -> %lld", actuator->value, actuatorDataPackets[i].value);
+                            actuator->value = actuatorDataPackets[i].value;
+                            free(actuatorDataPackets[i].actuatorID);
+                        }
+                    }
+                    free(actuatorDataPackets);
+                    break;
+                }
+
+                case IPCMSGTYPE_RUNPHYSICALSYSTEM:
+                {
+                    log_debug("received start signal for physical system");
+                    startPhysicalSystem();
+                    break;
+                }
+
+                case IPCMSGTYPE_STOPPHYSICALSYSTEM:
+                {
+                    log_debug("received stop signal for physical system");
+                    stopPhysicalSystem();
+                    break;
+                }
+
+                case IPCMSGTYPE_EXPERIMENTINIT:
+                {
+                    log_debug("received initialization message for experiment");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSON* packetsJSON = JSONCreateArray();
+                    SensorDataPacket* packets = malloc(sizeof(*packets)*sensorCount);
+
+                    log_debug("preparing sensor data packets");
+                    for (int i = 0; i < sensorCount; i++)
+                    {
+                        packets[i] = (SensorDataPacket){sensors[i].sensorID, sensors[i].type, sensors[i].value};
+                        JSONAddItemToArray(packetsJSON, SensorDataPacketToJSON(packets[i]));
+                    }
+                    
+                    free(packets);
+                    JSONAddItemToObject(msgJSON, "SensorData", packetsJSON);
+                    
+                    log_debug("sending result of experiment initialization");
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageIPC(communicationService, IPCMSGTYPE_EXPERIMENTINIT, message, strlen(message));
+                    free(message);
+
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_INTERRUPTED:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return -1;
+                    break;
+                }
+
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return 0;
+                    break;
+                }
+
+                default:
+                {
+                    log_error("received message of unknown type");
+                    break;
+                }
             }
-        }
-        else
-        {
-            break;
+            free(msg.content); 
         }
     }
     return 0;

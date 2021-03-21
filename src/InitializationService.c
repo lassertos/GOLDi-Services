@@ -65,219 +65,212 @@ int startInitialization(void)
 
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
-    while(1)
+    while(ipcsc->open)
     {
-        if(ipcsc->open)
+        if(hasMessages(ipcsc))
         {
-            if(hasMessages(ipcsc))
+            Message msg = receiveMessageIPC(ipcsc);
+            //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+            switch (msg.type)
             {
-                Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
-                switch (msg.type)
+                case IPCMSGTYPE_INITINITIALIZATION:
                 {
-                    case IPCMSGTYPE_INITINITIALIZATION:
+                    log_debug("initialization: starting initialization");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    if (msgJSON == NULL)
                     {
-                        log_debug("initialization: starting initialization");
-                        JSON* msgJSON = JSONParse(msg.content);
-                        if (msgJSON == NULL)
-                        {
-                            log_error("initialization: IPC message could not be parsed to JSON");
-                            break;
-                        }
-                        log_debug("initialization: parsing sensors as json from message json");
-                        JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
-                        if (sensorsJSON == NULL)
-                        {
-                            log_error("initialization: sensors not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: parsing actuators as json from message json");
-                        JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
-                        if (actuatorsJSON == NULL)
-                        {
-                            log_error("initialization: actuators not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: parsing initializers as json from message json");
-                        JSON* initializersJSON = JSONGetObjectItem(msgJSON, "Initializers");
-                        if (initializersJSON == NULL)
-                        {
-                            log_error("initialization: initializers not included in message json");
-                            break;
-                        }
-                        log_debug("initialization: converting sensors json to string");
-                        char* stringSensors = JSONPrint(sensorsJSON);
-                        if (stringSensors == NULL)
-                        {
-                            log_error("initialization: sensors json could not be parsed to string");
-                            break;
-                        }
-                        log_debug("initialization: converting actuators json to string");
-                        char* stringActuators = JSONPrint(actuatorsJSON);
-                        if (stringActuators == NULL)
-                        {
-                            log_error("initialization: actuators json could not be parsed to string");
-                            break;
-                        }
-                        log_debug("initialization: converting initializers json to string");
-                        char* stringInitializers = JSONPrint(initializersJSON);
-                        if (stringInitializers == NULL)
-                        {
-                            log_error("initialization: initializers json could not be parsed to string");
-                            break;
-                        }
+                        log_error("initialization: IPC message could not be parsed to JSON");
+                        break;
+                    }
+                    log_debug("initialization: parsing sensors as json from message json");
+                    JSON* sensorsJSON = JSONGetObjectItem(msgJSON, "Sensors");
+                    if (sensorsJSON == NULL)
+                    {
+                        log_error("initialization: sensors not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: parsing actuators as json from message json");
+                    JSON* actuatorsJSON = JSONGetObjectItem(msgJSON, "Actuators");
+                    if (actuatorsJSON == NULL)
+                    {
+                        log_error("initialization: actuators not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: parsing initializers as json from message json");
+                    JSON* initializersJSON = JSONGetObjectItem(msgJSON, "Initializers");
+                    if (initializersJSON == NULL)
+                    {
+                        log_error("initialization: initializers not included in message json");
+                        break;
+                    }
+                    log_debug("initialization: converting sensors json to string");
+                    char* stringSensors = JSONPrint(sensorsJSON);
+                    if (stringSensors == NULL)
+                    {
+                        log_error("initialization: sensors json could not be parsed to string");
+                        break;
+                    }
+                    log_debug("initialization: converting actuators json to string");
+                    char* stringActuators = JSONPrint(actuatorsJSON);
+                    if (stringActuators == NULL)
+                    {
+                        log_error("initialization: actuators json could not be parsed to string");
+                        break;
+                    }
+                    log_debug("initialization: converting initializers json to string");
+                    char* stringInitializers = JSONPrint(initializersJSON);
+                    if (stringInitializers == NULL)
+                    {
+                        log_error("initialization: initializers json could not be parsed to string");
+                        break;
+                    }
 
-                        log_debug("initialization: parsing sensors");
-                        sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
-                        if (sensors == NULL)
-                        {
-                            log_error("initialization: sensors could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
-                            free(result);
-                            break;
-                        }
-                        else
-                        {
-                            for (int i = 0; i < sensorCount; i++)
-                            {
-                                printSensorData(sensors[i]);   // TODO add debugging flag
-                            }
-                        }
-
-                        log_debug("initialization: parsing actuators");
-                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
-                        if (actuators == NULL)
-                        {
-                            log_error("initialization: actuators could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
-                            free(result);
-                            break;
-                        }
-                        else
-                        {
-                            variables = malloc(sizeof(*variables) * (sensorCount+actuatorCount));
-                            for (int i = 0; i < sensorCount; i++)
-                            {
-                                OperandType operandType;
-                                if (sensors[i].type == SensorTypeBinary)
-                                {
-                                    operandType = OperandTypeBinary;
-                                }
-                                else
-                                {
-                                    operandType = OperandTypeNumber;
-                                }
-                                variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
-                            }
-                            for (int i = sensorCount; i < (sensorCount + actuatorCount); i++)
-                            {
-                                int k = i-sensorCount;
-                                variables[k] = (Variable){actuators[k].type, actuators[k].actuatorID, actuators[k].value, getValueSizeOfActuatorType(actuators[k].type)};
-                                printActuatorData(actuators[k]);   // TODO add debugging flag
-                            }
-                        }
-
-                        log_debug("initialization: parsing state machines of initializers");
-                        stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount+actuatorCount, &stateMachineCount);
-                        if (stateMachines == NULL)
-                        {
-                            log_error("initialization: state machines of initializers could not be parsed successfully");
-                            char* result = serializeInt(0);
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
-                            free(result);
-                            break;
-                        }
-                        else
-                        {
-                            for (int i = 0; i < stateMachineCount; i++)
-                            {
-                                printStateMachineInfo(&stateMachines[i]);   // TODO add debugging flag
-                            }
-                        }
-
-                        log_debug("initialization: sending result to Communication Service");
-                        char* result = serializeInt(1);
+                    log_debug("initialization: parsing sensors");
+                    sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
+                    if (sensors == NULL)
+                    {
+                        log_error("initialization: sensors could not be parsed successfully");
+                        char* result = serializeInt(0);
                         sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
                         free(result);
-
-                        JSONDelete(msgJSON);
-                        free(stringSensors);
-                        free(stringActuators);
-                        free(stringInitializers);
                         break;
                     }
-
-                    case IPCMSGTYPE_SENSORDATA:
+                    else
                     {
-                        log_debug("receiving new sensor data");
-                        unsigned int newSensorDataCount = 0;
-                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
-                        if (sensorDataPackets == NULL)
+                        for (int i = 0; i < sensorCount; i++)
                         {
-                            //TODO error handling
+                            printSensorData(sensors[i]);   // TODO add debugging flag
                         }
-                        else
+                    }
+
+                    log_debug("initialization: parsing actuators");
+                    actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
+                    if (actuators == NULL)
+                    {
+                        log_error("initialization: actuators could not be parsed successfully");
+                        char* result = serializeInt(0);
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                        free(result);
+                        break;
+                    }
+                    else
+                    {
+                        variables = malloc(sizeof(*variables) * (sensorCount+actuatorCount));
+                        for (int i = 0; i < sensorCount; i++)
                         {
-                            for (int i = 0; i < newSensorDataCount; i++)
+                            OperandType operandType;
+                            if (sensors[i].type == SensorTypeBinary)
                             {
-                                Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
-                                sensor->value = sensorDataPackets[i].value;
-                                free(sensorDataPackets[i].sensorID);
+                                operandType = OperandTypeBinary;
                             }
+                            else
+                            {
+                                operandType = OperandTypeNumber;
+                            }
+                            variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
                         }
-                        free(sensorDataPackets);
-                        break;
+                        for (int i = sensorCount; i < (sensorCount + actuatorCount); i++)
+                        {
+                            int k = i-sensorCount;
+                            variables[k] = (Variable){actuators[k].type, actuators[k].actuatorID, actuators[k].value, getValueSizeOfActuatorType(actuators[k].type)};
+                            printActuatorData(actuators[k]);   // TODO add debugging flag
+                        }
                     }
 
-                    case IPCMSGTYPE_STARTINITIALIZATION:
+                    log_debug("initialization: parsing state machines of initializers");
+                    stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount+actuatorCount, &stateMachineCount);
+                    if (stateMachines == NULL)
                     {
-                        log_debug("starting initialization of physical system");
-                        execution.stopped = 0;
-                        execution.stateMachine = &stateMachines[msg.content[0]];
-                        pthread_t initializationThread;
-                        pthread_create(&initializationThread, NULL, &startInitialization, NULL);
+                        log_error("initialization: state machines of initializers could not be parsed successfully");
+                        char* result = serializeInt(0);
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                        free(result);
                         break;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < stateMachineCount; i++)
+                        {
+                            printStateMachineInfo(&stateMachines[i]);   // TODO add debugging flag
+                        }
                     }
 
-                    case IPCMSGTYPE_STOPINITIALIZATION:
-                    {
-                        log_debug("stopping initialization of physical system");
-                        execution.stopped = 1;
-                        break;
-                    }
+                    log_debug("initialization: sending result to Communication Service");
+                    char* result = serializeInt(1);
+                    sendMessageIPC(ipcsc, IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED, result, 4);
+                    free(result);
 
-                    case IPCMSGTYPE_INTERRUPTED:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return -1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_CLOSEDCONNECTION:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return 0;
-                        break;
-                    }
-
-                    default:
-                    {
-                        log_error("received message of unknown type");
-                        break;
-                    }
+                    JSONDelete(msgJSON);
+                    free(stringSensors);
+                    free(stringActuators);
+                    free(stringInitializers);
+                    break;
                 }
-                free(msg.content); 
+
+                case IPCMSGTYPE_SENSORDATA:
+                {
+                    log_debug("receiving new sensor data");
+                    unsigned int newSensorDataCount = 0;
+                    SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
+                    if (sensorDataPackets == NULL)
+                    {
+                        //TODO error handling
+                    }
+                    else
+                    {
+                        for (int i = 0; i < newSensorDataCount; i++)
+                        {
+                            Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
+                            sensor->value = sensorDataPackets[i].value;
+                            free(sensorDataPackets[i].sensorID);
+                        }
+                    }
+                    free(sensorDataPackets);
+                    break;
+                }
+
+                case IPCMSGTYPE_STARTINITIALIZATION:
+                {
+                    log_debug("starting initialization of physical system");
+                    execution.stopped = 0;
+                    execution.stateMachine = &stateMachines[msg.content[0]];
+                    pthread_t initializationThread;
+                    pthread_create(&initializationThread, NULL, &startInitialization, NULL);
+                    break;
+                }
+
+                case IPCMSGTYPE_STOPINITIALIZATION:
+                {
+                    log_debug("stopping initialization of physical system");
+                    execution.stopped = 1;
+                    break;
+                }
+
+                case IPCMSGTYPE_INTERRUPTED:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return -1;
+                    break;
+                }
+
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return 0;
+                    break;
+                }
+
+                default:
+                {
+                    log_error("received message of unknown type");
+                    break;
+                }
             }
-        }
-        else
-        {
-            break;
+            free(msg.content); 
         }
     }
     return 0;

@@ -41,81 +41,74 @@ static void sigint_handler(int sig)
 
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
-    while(1)
+    while(ipcsc->open)
     {
-        if(ipcsc->open)
+        if(hasMessages(ipcsc))
         {
-            if(hasMessages(ipcsc))
+            Message msg = receiveMessageIPC(ipcsc);
+            //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+            switch (msg.type)
             {
-                Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
-                switch (msg.type)
+                case IPCMSGTYPE_INITWEBCAMSERVICE:
                 {
-                    case IPCMSGTYPE_INITWEBCAMSERVICE:
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSON* cameraTypeJSON = JSONGetObjectItem(msgJSON, "Type");
+                    JSON* cameraAddressJSON = JSONGetObjectItem(msgJSON, "Address");
+                    JSON* cameraIDJSON = JSONGetObjectItem(msgJSON, "ID");
+
+                    if (!strncmp(cameraTypeJSON->valuestring, "USB", 3))
                     {
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSON* cameraTypeJSON = JSONGetObjectItem(msgJSON, "Type");
-                        JSON* cameraAddressJSON = JSONGetObjectItem(msgJSON, "Address");
-                        JSON* cameraIDJSON = JSONGetObjectItem(msgJSON, "ID");
-
-                        if (!strncmp(cameraTypeJSON->valuestring, "USB", 3))
-                        {
-                            CameraData.device = "v4l2";
-                        }
-
-                        CameraData.address = malloc(strlen(cameraAddressJSON->valuestring)+1);
-                        strcpy(CameraData.address, cameraAddressJSON->valuestring);
-
-                        CameraData.id = cameraIDJSON->valueint;
-
-                        JSONDelete(msgJSON);
-                        sendMessageIPC(communicationService, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
-                        break;
+                        CameraData.device = "v4l2";
                     }
 
-                    case IPCMSGTYPE_STARTEXPERIMENT:
-                    {
-                        CameraData.active = 1;
-                        break;
-                    }
+                    CameraData.address = malloc(strlen(cameraAddressJSON->valuestring)+1);
+                    strcpy(CameraData.address, cameraAddressJSON->valuestring);
 
-                    case IPCMSGTYPE_STOPEXPERIMENT:
-                    {
-                        CameraData.active = 0;
-                        break;
-                    }
+                    CameraData.id = cameraIDJSON->valueint;
 
-                    case IPCMSGTYPE_INTERRUPTED:
-                    {
-                        CameraData.active = 0;
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content);
-                        return -1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_CLOSEDCONNECTION:
-                    {
-                        CameraData.active = 0;
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content);
-                        return 0;
-                        break;
-                    }
-
-                    default:
-                    {
-                        break;
-                    }
+                    JSONDelete(msgJSON);
+                    sendMessageIPC(communicationService, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
+                    break;
                 }
-                free(msg.content);   
+
+                case IPCMSGTYPE_STARTEXPERIMENT:
+                {
+                    CameraData.active = 1;
+                    break;
+                }
+
+                case IPCMSGTYPE_STOPEXPERIMENT:
+                {
+                    CameraData.active = 0;
+                    break;
+                }
+
+                case IPCMSGTYPE_INTERRUPTED:
+                {
+                    CameraData.active = 0;
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return -1;
+                    break;
+                }
+
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                {
+                    CameraData.active = 0;
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return 0;
+                    break;
+                }
+
+                default:
+                {
+                    break;
+                }
             }
-        }
-        else
-        {
-            break;
+            free(msg.content);   
         }
     }
     return 0;

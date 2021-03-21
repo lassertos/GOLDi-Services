@@ -74,247 +74,240 @@ static ActuatorDataPacket* retrieveActuatorValues(unsigned int* packetcount)
 
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
-    while(1)
+    while(ipcsc->open)
     {
-        if(ipcsc->open)
+        if(hasMessages(ipcsc))
         {
-            if(hasMessages(ipcsc))
+            Message msg = receiveMessageIPC(ipcsc);
+            //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+            switch (msg.type)
             {
-                Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
-                switch (msg.type)
+                case IPCMSGTYPE_SENSORDATA:
                 {
-                    case IPCMSGTYPE_SENSORDATA:
+                    log_debug("received sensor data message");
+                    unsigned int newSensorDataCount = 0;
+                    SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
+                    for (int i = 0; i < newSensorDataCount; i++)
                     {
-                        log_debug("received sensor data message");
-                        unsigned int newSensorDataCount = 0;
-                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(msg.content, msg.length, &newSensorDataCount);
-                        for (int i = 0; i < newSensorDataCount; i++)
-                        {
-                            Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
-                            sensor->value = sensorDataPackets[i].value;
-                            free(sensorDataPackets[i].sensorID);
-                            sendSensorValue(sensor);
-                        }
-                        free(sensorDataPackets);
-                        break;
+                        Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
+                        sensor->value = sensorDataPackets[i].value;
+                        free(sensorDataPackets[i].sensorID);
+                        sendSensorValue(sensor);
                     }
-                    
-                    case IPCMSGTYPE_INITCOMMANDSERVICE:
-                    {
-                        log_debug("received initialization message");
-                        //TODO check for NULL?
-                        JSON* msgJSON = JSONParse(msg.content);
-                        if (msgJSON == NULL)
-                        {
-                            //TODO error handling
-                            log_error("message could not be parsed to json object");
-                        }
-
-                        JSON* experimentDataJSON = JSONGetObjectItem(msgJSON, "Experiment");
-                        JSON* sensorValuesJSON = JSONGetObjectItem(msgJSON, "SensorData");
-                        if (experimentDataJSON == NULL || sensorValuesJSON == NULL)
-                        {
-                            //TODO error handling
-                            log_error("experiment data or sensor values could not be retrieved from the message");
-                        }
-
-                        JSON* sensorsJSON = JSONGetObjectItem(experimentDataJSON, "Sensors");
-                        JSON* actuatorsJSON = JSONGetObjectItem(experimentDataJSON, "Actuators");
-                        if (sensorsJSON == NULL || actuatorsJSON == NULL)
-                        {
-                            //TODO error handling
-                            log_error("sensor data or actuator data could not be retrieved from the message");
-                        }
-
-                        /* initialize sensors object */
-                        char* stringSensors = JSONPrint(sensorsJSON);
-                        sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
-                        free(stringSensors);
-                        if (sensors == NULL)
-                        {
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
-                        }
-
-                        /* initialize actuators object */
-                        char* stringActuators = JSONPrint(actuatorsJSON);
-                        actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
-                        free(stringActuators);
-                        if (actuators == NULL)
-                        {
-                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
-                        }
-
-                        /* initialize sensor values */
-                        if (!JSONIsNull(sensorValuesJSON))
-                        {
-                            char* stringSensorValues = JSONPrint(sensorValuesJSON);
-                            unsigned int sensorDataPacketsCount = 0;
-                            SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorValues, strlen(stringSensorValues), &sensorDataPacketsCount); 
-                            free(stringSensorValues);
-
-                            if (sensorCount != sensorDataPacketsCount)
-                            {
-                                sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
-                            }
-
-                            for (int i = 0; i < sensorCount; i++)
-                            {
-                                Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
-                                sensor->value = sensorDataPackets[i].value;
-                                free(sensorDataPackets[i].sensorID);
-                                sendSensorValue(sensor);
-                            }
-
-                            free(sensorDataPackets);
-                        }
-
-                        /* prepare and send initialization finished message */
-                        JSONDeleteItemFromObject(msgJSON, "Experiment");
-                        JSONDeleteItemFromObject(msgJSON, "SensorData");
-
-                        ActuatorDataPacket* actuatorPackets = malloc(sizeof(*actuatorPackets)*actuatorCount);
-                        JSON* actuatorDataJSON = JSONCreateArray();
-                        for (int i = 0; i < actuatorCount; i++)
-                        {
-                            actuatorPackets[i].actuatorID = actuators[i].actuatorID;
-                            actuatorPackets[i].value = actuators[i].value;
-                            JSON* actuatorPacketJSON = ActuatorDataPacketToJSON(actuatorPackets[i]);
-                            JSONAddItemToArray(actuatorDataJSON, actuatorPacketJSON);
-                        }
-                        JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
-                        
-                        char* finishedMessage = JSONPrint(msgJSON);
-                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, finishedMessage, strlen(finishedMessage));
-                        free(finishedMessage);
-
-                        initialized = 1;
-
-                        /* cleanup */
-                        JSONDelete(msgJSON);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_DELAYBASEDFAULT:
-                    {
-                        log_debug("received delay fault message");
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSON* sensorDataPacketsJSON = JSONGetObjectItem(msgJSON, "SensorData");
-                        char* stringSensorDataPackets = JSONPrint(sensorDataPacketsJSON);
-                        unsigned int sensorDataPacketCount = 0;
-                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorDataPackets, strlen(stringSensorDataPackets), &sensorDataPacketCount);
-                        if (sensorDataPacketCount != sensorCount)
-                        {
-                            //TODO add error handling
-                            log_error("did not receive current data for all sensors");
-                        }
-                        for (int i = 0; i < sensorDataPacketCount; i++)
-                        {
-                            Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
-                            sensor->value = sensorDataPackets[i].value;
-                            sendSensorValue(sensor);
-                            free(sensorDataPackets[i].sensorID);
-                        }
-
-                        /* this is only used for fetching the new actuator values */
-                        unsigned int packetcount;
-                        ActuatorDataPacket* packets = retrieveActuatorValues(&packetcount);
-                        free(packets);
-
-                        /* prepare actuator data of all actuators for delayFaultAck */
-                        JSON* actuatorDataJSON = JSONCreateArray();
-                        for (int i = 0; i < actuatorCount; i++)
-                        {
-                            ActuatorDataPacket packet = {actuators[i].actuatorID, actuators[i].type, actuators[i].value};
-                            JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packet));
-                        }
-
-                        JSONDeleteItemFromObject(msgJSON, "SensorData");
-                        JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
-
-                        char* messageDelayFaultAck = JSONPrint(msgJSON);
-                        sendMessageIPC(ipcsc, IPCMSGTYPE_DELAYBASEDFAULTACK, messageDelayFaultAck, strlen(messageDelayFaultAck));
-
-                        free(messageDelayFaultAck);
-                        JSONDelete(msgJSON);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_PROGRAMCONTROLUNIT:
-                    {
-                        log_debug("received program control unit message");
-                        stopped = 1;
-                        //TODO maybe useless
-                        JSON* msgJSON = JSONCreateObject();
-                        JSON* actuatorDataJSON = JSONAddArrayToObject(msgJSON, "ActuatorData");
-                        ActuatorDataPacket* packets = malloc(sizeof(*packets) * actuatorCount);
-
-                        for (int i = 0; i < actuatorCount; i++)
-                        {
-                            actuators[i].value = actuators[i].stopValue;
-                            packets[i] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].type, actuators[i].value};
-                        }
-
-                        for(int i = 0; i < actuatorCount; i++)
-                        {
-                            JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packets[i]));
-                        }
-
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageIPC(ipcsc, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
-                        
-                        free(packets);
-                        free(message);
-                        JSONDelete(msgJSON);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED:
-                    {
-                        log_debug("received program control unit finished message");
-                        stopped = 0;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_ENDEXPERIMENT:
-                    {
-                        log_debug("received end experiment message");
-                        initialized = 0;
-                        destroySensors(sensors, sensorCount);
-                        destroyActuators(actuators, actuatorCount);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INTERRUPTED:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return -1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_CLOSEDCONNECTION:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content); 
-                        return 0;
-                        break;
-                    }
-
-                    default:
-                    {
-                        log_error("received message of unknown type");
-                        break;
-                    }
+                    free(sensorDataPackets);
+                    break;
                 }
-                free(msg.content);  
+                
+                case IPCMSGTYPE_INITCOMMANDSERVICE:
+                {
+                    log_debug("received initialization message");
+                    //TODO check for NULL?
+                    JSON* msgJSON = JSONParse(msg.content);
+                    if (msgJSON == NULL)
+                    {
+                        //TODO error handling
+                        log_error("message could not be parsed to json object");
+                    }
+
+                    JSON* experimentDataJSON = JSONGetObjectItem(msgJSON, "Experiment");
+                    JSON* sensorValuesJSON = JSONGetObjectItem(msgJSON, "SensorData");
+                    if (experimentDataJSON == NULL || sensorValuesJSON == NULL)
+                    {
+                        //TODO error handling
+                        log_error("experiment data or sensor values could not be retrieved from the message");
+                    }
+
+                    JSON* sensorsJSON = JSONGetObjectItem(experimentDataJSON, "Sensors");
+                    JSON* actuatorsJSON = JSONGetObjectItem(experimentDataJSON, "Actuators");
+                    if (sensorsJSON == NULL || actuatorsJSON == NULL)
+                    {
+                        //TODO error handling
+                        log_error("sensor data or actuator data could not be retrieved from the message");
+                    }
+
+                    /* initialize sensors object */
+                    char* stringSensors = JSONPrint(sensorsJSON);
+                    sensors = parseSensors(stringSensors, strlen(stringSensors), &sensorCount);
+                    free(stringSensors);
+                    if (sensors == NULL)
+                    {
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                    }
+
+                    /* initialize actuators object */
+                    char* stringActuators = JSONPrint(actuatorsJSON);
+                    actuators = parseActuators(stringActuators, strlen(stringActuators), &actuatorCount, sensorCount);
+                    free(stringActuators);
+                    if (actuators == NULL)
+                    {
+                        sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                    }
+
+                    /* initialize sensor values */
+                    if (!JSONIsNull(sensorValuesJSON))
+                    {
+                        char* stringSensorValues = JSONPrint(sensorValuesJSON);
+                        unsigned int sensorDataPacketsCount = 0;
+                        SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorValues, strlen(stringSensorValues), &sensorDataPacketsCount); 
+                        free(stringSensorValues);
+
+                        if (sensorCount != sensorDataPacketsCount)
+                        {
+                            sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, NULL, 0);
+                        }
+
+                        for (int i = 0; i < sensorCount; i++)
+                        {
+                            Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
+                            sensor->value = sensorDataPackets[i].value;
+                            free(sensorDataPackets[i].sensorID);
+                            sendSensorValue(sensor);
+                        }
+
+                        free(sensorDataPackets);
+                    }
+
+                    /* prepare and send initialization finished message */
+                    JSONDeleteItemFromObject(msgJSON, "Experiment");
+                    JSONDeleteItemFromObject(msgJSON, "SensorData");
+
+                    ActuatorDataPacket* actuatorPackets = malloc(sizeof(*actuatorPackets)*actuatorCount);
+                    JSON* actuatorDataJSON = JSONCreateArray();
+                    for (int i = 0; i < actuatorCount; i++)
+                    {
+                        actuatorPackets[i].actuatorID = actuators[i].actuatorID;
+                        actuatorPackets[i].value = actuators[i].value;
+                        JSON* actuatorPacketJSON = ActuatorDataPacketToJSON(actuatorPackets[i]);
+                        JSONAddItemToArray(actuatorDataJSON, actuatorPacketJSON);
+                    }
+                    JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
+                    
+                    char* finishedMessage = JSONPrint(msgJSON);
+                    sendMessageIPC(ipcsc, IPCMSGTYPE_INITCOMMANDSERVICEFINISHED, finishedMessage, strlen(finishedMessage));
+                    free(finishedMessage);
+
+                    initialized = 1;
+
+                    /* cleanup */
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_DELAYBASEDFAULT:
+                {
+                    log_debug("received delay fault message");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSON* sensorDataPacketsJSON = JSONGetObjectItem(msgJSON, "SensorData");
+                    char* stringSensorDataPackets = JSONPrint(sensorDataPacketsJSON);
+                    unsigned int sensorDataPacketCount = 0;
+                    SensorDataPacket* sensorDataPackets = parseSensorDataPackets(stringSensorDataPackets, strlen(stringSensorDataPackets), &sensorDataPacketCount);
+                    if (sensorDataPacketCount != sensorCount)
+                    {
+                        //TODO add error handling
+                        log_error("did not receive current data for all sensors");
+                    }
+                    for (int i = 0; i < sensorDataPacketCount; i++)
+                    {
+                        Sensor* sensor = getSensorWithID(sensors, sensorDataPackets[i].sensorID, sensorCount);
+                        sensor->value = sensorDataPackets[i].value;
+                        sendSensorValue(sensor);
+                        free(sensorDataPackets[i].sensorID);
+                    }
+
+                    /* this is only used for fetching the new actuator values */
+                    unsigned int packetcount;
+                    ActuatorDataPacket* packets = retrieveActuatorValues(&packetcount);
+                    free(packets);
+
+                    /* prepare actuator data of all actuators for delayFaultAck */
+                    JSON* actuatorDataJSON = JSONCreateArray();
+                    for (int i = 0; i < actuatorCount; i++)
+                    {
+                        ActuatorDataPacket packet = {actuators[i].actuatorID, actuators[i].type, actuators[i].value};
+                        JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packet));
+                    }
+
+                    JSONDeleteItemFromObject(msgJSON, "SensorData");
+                    JSONAddItemToObject(msgJSON, "ActuatorData", actuatorDataJSON);
+
+                    char* messageDelayFaultAck = JSONPrint(msgJSON);
+                    sendMessageIPC(ipcsc, IPCMSGTYPE_DELAYBASEDFAULTACK, messageDelayFaultAck, strlen(messageDelayFaultAck));
+
+                    free(messageDelayFaultAck);
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_PROGRAMCONTROLUNIT:
+                {
+                    log_debug("received program control unit message");
+                    stopped = 1;
+                    //TODO maybe useless
+                    JSON* msgJSON = JSONCreateObject();
+                    JSON* actuatorDataJSON = JSONAddArrayToObject(msgJSON, "ActuatorData");
+                    ActuatorDataPacket* packets = malloc(sizeof(*packets) * actuatorCount);
+
+                    for (int i = 0; i < actuatorCount; i++)
+                    {
+                        actuators[i].value = actuators[i].stopValue;
+                        packets[i] = (ActuatorDataPacket){actuators[i].actuatorID, actuators[i].type, actuators[i].value};
+                    }
+
+                    for(int i = 0; i < actuatorCount; i++)
+                    {
+                        JSONAddItemToArray(actuatorDataJSON, ActuatorDataPacketToJSON(packets[i]));
+                    }
+
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageIPC(ipcsc, IPCMSGTYPE_ACTUATORDATA, message, strlen(message));
+                    
+                    free(packets);
+                    free(message);
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED:
+                {
+                    log_debug("received program control unit finished message");
+                    stopped = 0;
+                    break;
+                }
+
+                case IPCMSGTYPE_ENDEXPERIMENT:
+                {
+                    log_debug("received end experiment message");
+                    initialized = 0;
+                    destroySensors(sensors, sensorCount);
+                    destroyActuators(actuators, actuatorCount);
+                    break;
+                }
+
+                case IPCMSGTYPE_INTERRUPTED:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return -1;
+                    break;
+                }
+
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content); 
+                    return 0;
+                    break;
+                }
+
+                default:
+                {
+                    log_error("received message of unknown type");
+                    break;
+                }
             }
-        }
-        else
-        {
-            break;
+            free(msg.content);  
         }
     }
     return 0;

@@ -326,7 +326,8 @@ void closeIPCConnection(IPCSocketConnection* ipcsc)
         pthread_join(ipcsc->thread, NULL);
         log_info("closed connection to %s", ipcsc->socketname);
         //printf("closed connection to %s\n", ipcsc->socketname);
+        pthread_mutex_unlock(&ipcsc->mutex);
+        pthread_mutex_destroy(&ipcsc->mutex);
         free(ipcsc);
     }
-    pthread_mutex_unlock(&ipcsc->mutex);
 }
