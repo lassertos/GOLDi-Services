@@ -277,6 +277,7 @@ static SocketMessage receiveSocketMessageIPC(IPCSocketConnection* ipcsc)
         result.fragmentNumber = 0;
         result.isLastFragment = 1;
         result.content = NULL;
+        pthread_mutex_unlock(&ipcsc->mutex);
         return result;
     }
 
@@ -317,17 +318,15 @@ Message receiveMessageIPC(IPCSocketConnection* ipcsc)
  */
 void closeIPCConnection(IPCSocketConnection* ipcsc)
 {
-    pthread_mutex_lock(&ipcsc->mutex);
     if (ipcsc->open)
     {
         sendMessageIPC(ipcsc, IPCMSGTYPE_CLOSEDCONNECTION, NULL, 0);
+        log_debug("closing connection to %s", ipcsc->socketname);
         close(ipcsc->fd);
         ipcsc->open = 0;
-        log_debug("closing connection to %s", ipcsc->socketname);
         pthread_join(ipcsc->thread, NULL);
         log_info("closed connection to %s", ipcsc->socketname);
         //printf("closed connection to %s\n", ipcsc->socketname);
-        pthread_mutex_unlock(&ipcsc->mutex);
         pthread_mutex_destroy(&ipcsc->mutex);
         free(ipcsc);
     }
