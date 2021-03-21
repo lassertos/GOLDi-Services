@@ -23,6 +23,7 @@ static volatile int initializedProgrammingService = 0;  // indicates whether the
  */
 static void signal_handler(int sig)
 {
+    log_debug("received a signal");
     if (sig == SIGINT || sig == SIGUSR1)
     {
         JSONDelete(deviceDataJSON);

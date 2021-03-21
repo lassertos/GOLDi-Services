@@ -33,6 +33,7 @@ volatile struct
  */
 static void signal_handler(int sig)
 {
+    log_debug("received a signal");
     if (sig == SIGINT || sig == SIGUSR1)
     {
         wscLabserver.interrupted = 1;
