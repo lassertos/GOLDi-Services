@@ -5,7 +5,7 @@
 #define FALSE 0
 #define TRUE 1
 
-typedef struct stack_s stack_t;
+typedef struct stack_s stack;
 
 struct stack_frame_s {
   struct stack_frame_s *next;
@@ -16,8 +16,8 @@ struct stack_s {
   struct stack_frame_s *top;
 };
 
-int stack_destroy(stack_t *stack);
-int stack_empty(stack_t *stack);
-stack_t *stack_new(void);
-void *stack_pop(stack_t *stack);
-int stack_push(stack_t *stack, void *data);
+int stack_destroy(stack *stack);
+int stack_empty(stack *stack);
+stack *stack_new(void);
+void *stack_pop(stack *stack);
+int stack_push(stack *stack, void *data);
