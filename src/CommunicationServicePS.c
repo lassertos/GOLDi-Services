@@ -7,8 +7,6 @@
 #include "parsers/json.h"
 #include "logging/log.h"
 
-//TODO add signal handler for updates
-
 /* global variables needed for execution */
 static websocketConnection wscLabserver;            // the websocket to the Labserver
 static websocketConnection wscControlUnit;          // the websocket to the Control Unit
@@ -35,24 +33,31 @@ volatile struct
  */
 static void signal_handler(int sig)
 {
-    wscLabserver.interrupted = 1;
-    pthread_join(wscLabserver.thread, NULL);
-    wscControlUnit.interrupted = 1;
-    pthread_join(wscControlUnit.thread, NULL);
-    if(protectionService && protectionService->open)
-        closeIPCConnection(protectionService);
-    if(webcamService && webcamService->open)
-        closeIPCConnection(webcamService);
-    if(initializationService && initializationService->open)
-        closeIPCConnection(initializationService);
-    free(deviceDataCompact);
-    if (sig == SIGINT)
+    if (sig == SIGINT || sig == SIGUSR1)
     {
-        exit(0);
-    }
-    else if (sig == SIGUSR1)
-    {
-        system("shutdown -r 1");
+        wscLabserver.interrupted = 1;
+        pthread_join(wscLabserver.thread, NULL);
+        wscControlUnit.interrupted = 1;
+        pthread_join(wscControlUnit.thread, NULL);
+        if(protectionService && protectionService->open)
+            closeIPCConnection(protectionService);
+        if(webcamService && webcamService->open)
+            closeIPCConnection(webcamService);
+        if(initializationService && initializationService->open)
+            closeIPCConnection(initializationService);
+        free(deviceDataCompact);
+        JSONDelete(deviceDataCompactJSON);
+        log_debug("cleanup completed");
+        if (sig == SIGINT)
+        {
+            log_debug("exiting");
+            exit(0);
+        }
+        else
+        {
+            log_debug("restarting");
+            system("shutdown -r 1");
+        }
     }
 }
 

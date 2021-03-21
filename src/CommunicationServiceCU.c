@@ -6,8 +6,6 @@
 #include "parsers/json.h"
 #include "logging/log.h"
 
-//TODO add signal handler for updates
-
 /* global variables needed for execution */
 static websocketConnection wscLabserver;                // the websocket to the Labserver
 static websocketConnection wscPhysicalSystem;           // the websocket to the Physical System
@@ -25,23 +23,29 @@ static volatile int initializedProgrammingService = 0;  // indicates whether the
  */
 static void signal_handler(int sig)
 {
-    JSONDelete(deviceDataJSON);
-    free(deviceData);
-	wscLabserver.interrupted = 1;
-    pthread_join(wscLabserver.thread, NULL);
-    wscPhysicalSystem.interrupted = 1;
-    pthread_join(wscPhysicalSystem.thread, NULL);
-    if(commandService && commandService->open)
-        closeIPCConnection(commandService);
-    if(programmingService && programmingService->open)
-        closeIPCConnection(programmingService);
-    if (sig == SIGINT)
+    if (sig == SIGINT || sig == SIGUSR1)
     {
-        exit(0);
-    }
-    else if (sig == SIGUSR1)
-    {
-        system("shutdown -r 1");
+        JSONDelete(deviceDataJSON);
+        free(deviceData);
+        wscLabserver.interrupted = 1;
+        pthread_join(wscLabserver.thread, NULL);
+        wscPhysicalSystem.interrupted = 1;
+        pthread_join(wscPhysicalSystem.thread, NULL);
+        if(commandService && commandService->open)
+            closeIPCConnection(commandService);
+        if(programmingService && programmingService->open)
+            closeIPCConnection(programmingService);
+        log_debug("cleanup completed");
+        if (sig == SIGINT)
+        {
+            log_debug("exiting");
+            exit(0);
+        }
+        else
+        {
+            log_debug("restarting");
+            system("shutdown -r 1");
+        }
     }
 }
 

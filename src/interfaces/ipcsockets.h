@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "../utils/utils.h"
+#include <signal.h>
 
 #define COMMUNICATION_SERVICE "GOLDiCommunicationService"
 #define PROGRAMMING_SERVICE "GOLDiProgrammingService"
