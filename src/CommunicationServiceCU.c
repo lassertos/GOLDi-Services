@@ -28,10 +28,16 @@ static void signal_handler(int sig)
     {
         JSONDelete(deviceDataJSON);
         free(deviceData);
-        wscLabserver.interrupted = 1;
-        pthread_join(wscLabserver.thread, NULL);
-        wscPhysicalSystem.interrupted = 1;
-        pthread_join(wscPhysicalSystem.thread, NULL);
+        if (wscLabserver.connectionEstablished)
+        {
+            wscLabserver.interrupted = 1;
+            pthread_join(wscLabserver.thread, NULL);
+        }
+        if (wscPhysicalSystem.connectionEstablished)
+        {
+            wscPhysicalSystem.interrupted = 1;
+            pthread_join(wscPhysicalSystem.thread, NULL);
+        }
         if(commandService && commandService->open)
             closeIPCConnection(commandService);
         if(programmingService && programmingService->open)

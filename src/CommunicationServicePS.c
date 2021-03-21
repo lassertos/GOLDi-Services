@@ -36,10 +36,16 @@ static void signal_handler(int sig)
     log_debug("received a signal");
     if (sig == SIGINT || sig == SIGUSR1)
     {
-        wscLabserver.interrupted = 1;
-        pthread_join(wscLabserver.thread, NULL);
-        wscControlUnit.interrupted = 1;
-        pthread_join(wscControlUnit.thread, NULL);
+        if (wscLabserver.connectionEstablished)
+        {
+            wscLabserver.interrupted = 1;
+            pthread_join(wscLabserver.thread, NULL);
+        }
+        if (wscControlUnit.connectionEstablished)
+        {
+            wscControlUnit.interrupted = 1;
+            pthread_join(wscControlUnit.thread, NULL);
+        }
         if(protectionService && protectionService->open)
             closeIPCConnection(protectionService);
         if(webcamService && webcamService->open)
