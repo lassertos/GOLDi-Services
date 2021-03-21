@@ -116,7 +116,7 @@ static void printTokenQueue(queue_t* queue)
 }
 
 /* can be used to print an overview of the stack */
-static void printTokenStack(stack_t *stack)
+static void printTokenStack(stack_dt *stack)
 {
     printf("Current stack:\n");
     if (stack_empty(stack))
@@ -163,7 +163,7 @@ static void removeDoubleNegation(char *str, unsigned int length)
 
 /* Is called when an operator is found in the given expression TODO: error handling*/
 static int shuntingyardReadOperator(char operator, char *firstOperand, unsigned int *sizeFirstOperand, 
-                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_t *stack)
+                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_dt *stack)
 {
     int precedence = getOperatorPrecedence(operator);
 
@@ -210,7 +210,7 @@ static queue_t *shuntingyardAlgorithm(char *str, unsigned int length)
 {
     removeDoubleNegation(str, strlen(str));
 	queue_t *queue = queue_new();
-	stack_t *stack = stack_new();
+	stack_dt *stack = stack_new();
     char currentValue[length];
     unsigned int sizeCurrentValue = 0;
     unsigned int startIndexCurrentValue = 0;
@@ -420,7 +420,7 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
 {
     queue_t *queue = shuntingyardAlgorithm(str, length);
     BooleanExpression *expression;
-    stack_t *expressionStack = stack_new();
+    stack_dt *expressionStack = stack_new();
 
     while (!queue_empty(queue))
     {
