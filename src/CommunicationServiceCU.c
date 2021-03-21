@@ -49,6 +49,7 @@ static void signal_handler(int sig)
         if(programmingService && programmingService->open)
             closeIPCConnection(programmingService);
         log_debug("cleanup completed");
+        exit(0);
     }
 }
 

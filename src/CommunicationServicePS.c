@@ -60,6 +60,7 @@ static void signal_handler(int sig)
         free(deviceDataCompact);
         JSONDelete(deviceDataCompactJSON);
         log_debug("cleanup completed");
+        exit(0);
     }
 }
 
