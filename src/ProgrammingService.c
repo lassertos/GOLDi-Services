@@ -72,7 +72,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                             case CUTYPE_PLD:
                             {
                                 rename(PROGRAMMINGFILE_GENERIC, PROGRAMMINGFILE_PLD);
-                                int result = programFPGA(PROGRAMMINGFILE_PLD);
+                                int result = programControlUnitFPGA(PROGRAMMINGFILE_PLD);
                                 char* resultString = serializeInt(result);
                                 sendMessageIPC(ipcsc, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, resultString, 4);
                                 free(resultString);

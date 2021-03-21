@@ -141,12 +141,6 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     return result;
 }
 
-#include <gst/gst.h>
-#include <gstreamer-1.0/gst/app/gstappsink.h>
-#include <gstreamer-1.0/gst/video/video.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 /* Structure to contain all our information, so we can pass it to callbacks */
 typedef struct _CustomData 
 {
@@ -240,25 +234,8 @@ int main(int argc, char const *argv[])
     /* Create the empty pipeline */
     data.pipeline = gst_pipeline_new ("test-pipeline");
 
-    if (!data.videosource) {
-        g_printerr ("Videosource could not be created.\n");
-    }
-
-    if (!data.videoconvert) {
-        g_printerr ("Videoconvert could not be created.\n");
-    }
-
-    if (!data.appsink) {
-        g_printerr ("Appsink could not be created.\n");
-    }
-
-    if (!data.pipeline) {
-        g_printerr ("Pipeline creation failed.\n");
-    }
-
     if (!data.pipeline || !data.videosource || !data.videoconvert|| !data.appsink) {
         g_printerr ("Not all elements could be created.\n");
-        sleep(10);
         return -1;
     }
 

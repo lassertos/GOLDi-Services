@@ -52,5 +52,6 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
 int evaluateBooleanExpression(BooleanExpression* expression);
 void printBooleanExpression(BooleanExpression* expression);
 void destroyBooleanExpression(BooleanExpression* expression);
+Variable* getVariableWithName(Variable* variables, char* id, int variablesCount);
 
 #endif

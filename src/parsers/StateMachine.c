@@ -16,7 +16,7 @@ static StateMachineState* getStateMachineStateByName(char* name, StateMachine* s
     return NULL;
 }
 
-StateMachine* parseStateMachines(char* string, unsigned int length, Variable* variables, unsigned int variablesCount, Actuator* actuators, unsigned int actuatorsCount, unsigned int* stateMachineCount)
+StateMachine* parseStateMachines(char* string, unsigned int length, Variable* variables, unsigned int variablesCount, unsigned int* stateMachineCount)
 {
     JSON* json = JSONParse(string);
     *stateMachineCount = JSONGetArraySize(json);
@@ -88,7 +88,7 @@ StateMachine* parseStateMachines(char* string, unsigned int length, Variable* va
             {
                 currentState->outputs[outputIndex].actuatorID = malloc(strlen(jsonStateOutputValue->string)+1);
                 strcpy(currentState->outputs[outputIndex].actuatorID, jsonStateOutputValue->string);
-                Actuator* currentActuator = getActuatorWithID(actuators, jsonStateOutputValue->string, actuatorsCount);
+                Variable* currentActuator = getVariableWithName(variables, jsonStateOutputValue->string, variablesCount);
                 currentState->outputs[outputIndex].value = unbeautifyActuatorValue(jsonStateOutputValue, currentActuator->type);
                 currentState->outputs[outputIndex].type = currentActuator->type;
             }

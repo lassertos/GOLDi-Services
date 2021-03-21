@@ -37,7 +37,7 @@ typedef struct
 } StateMachineExecution;
 
 
-StateMachine* parseStateMachines(char* string, unsigned int length, Variable* variables, unsigned int variablesCount, Actuator* actuators, unsigned int actuatorsCount, unsigned int* stateMachineCount);
+StateMachine* parseStateMachines(char* string, unsigned int length, Variable* variables, unsigned int variablesCount, unsigned int* stateMachineCount);
 StateMachine* getStateMachineByName(char* name, StateMachine* stateMachines, unsigned int stateMachineCount);
 int updateStateMachine(StateMachine* stateMachine);
 void resetStateMachine(StateMachine* stateMachine);

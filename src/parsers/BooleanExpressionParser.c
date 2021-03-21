@@ -24,6 +24,20 @@ typedef struct Token_s
     unsigned int length;
 } Token;
 
+Variable* getVariableWithName(Variable* variables, char* name, int variablesCount)
+{
+    Variable* current = variables;
+    for (int i = 0; i < variablesCount; i++)
+    {
+        if (!strcmp(current->name, name))
+        {
+            return current;
+        }
+        current++;
+    }
+    return NULL;
+}
+
 static unsigned int isNumber(char *str, int length)
 {
     for (int i = 0; i < length; i++)

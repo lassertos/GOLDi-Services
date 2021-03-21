@@ -36,11 +36,17 @@ int startInitialization(void)
             unsigned int outputsCount = execution.stateMachine->activeState->outputCount;
             JSON* actuatorDataMsgJSON = JSONCreateObject();
             JSON* actuatorDataJSON = JSONCreateArray();
+            for (int i = 0; i < actuatorCount; i++)
+            {
+                ActuatorDataPacket packet = {actuators[i].actuatorID, actuators[i].type, actuators[i].stopValue};
+                JSON* packetJSON = ActuatorDataPacketToJSON(packet);
+                JSONAddItemToArray(actuatorDataJSON, packetJSON);
+            }
             for (int i = 0; i < outputsCount; i++)
             {
                 ActuatorDataPacket packet = StateMachineOutputToActuatorDataPacket(outputs[i]);
                 JSON* packetJSON = ActuatorDataPacketToJSON(packet);
-                JSONAddItemToArray(actuatorDataJSON, packetJSON);
+                JSONReplaceItemInObject(actuatorDataJSON, packetJSON->string, packetJSON);
             }
             JSONAddItemToObject(actuatorDataMsgJSON, "ActuatorData", actuatorDataJSON);
             char* actuatorDataMsg = JSONPrint(actuatorDataMsgJSON);
@@ -133,20 +139,9 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
                         else
                         {
-                            variables = malloc(sizeof(*variables) * sensorCount);
                             for (int i = 0; i < sensorCount; i++)
                             {
                                 printSensorData(sensors[i]);   // TODO add debugging flag
-                                OperandType operandType;
-                                if (sensors[i].type == SensorTypeBinary)
-                                {
-                                    operandType = OperandTypeBinary;
-                                }
-                                else
-                                {
-                                    operandType = OperandTypeNumber;
-                                }
-                                variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
                             }
                         }
 
@@ -162,14 +157,30 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                         }
                         else
                         {
-                            for (int i = 0; i < actuatorCount; i++)
+                            variables = malloc(sizeof(*variables) * (sensorCount+actuatorCount));
+                            for (int i = 0; i < sensorCount; i++)
                             {
-                                printActuatorData(actuators[i]);   // TODO add debugging flag
+                                OperandType operandType;
+                                if (sensors[i].type == SensorTypeBinary)
+                                {
+                                    operandType = OperandTypeBinary;
+                                }
+                                else
+                                {
+                                    operandType = OperandTypeNumber;
+                                }
+                                variables[i] = (Variable){operandType, sensors[i].sensorID, sensors[i].value, getValueSizeOfSensorType(sensors[i].type)};
+                            }
+                            for (int i = sensorCount; i < (sensorCount + actuatorCount); i++)
+                            {
+                                int k = i-sensorCount;
+                                variables[k] = (Variable){actuators[k].type, actuators[k].actuatorID, actuators[k].value, getValueSizeOfActuatorType(actuators[k].type)};
+                                printActuatorData(actuators[k]);   // TODO add debugging flag
                             }
                         }
 
                         log_debug("initialization: parsing state machines of initializers");
-                        stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount, actuators, actuatorCount, &stateMachineCount);
+                        stateMachines = parseStateMachines(stringInitializers, strlen(stringInitializers), variables, sensorCount+actuatorCount, &stateMachineCount);
                         if (stateMachines == NULL)
                         {
                             log_error("initialization: state machines of initializers could not be parsed successfully");

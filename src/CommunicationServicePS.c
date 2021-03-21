@@ -29,14 +29,13 @@ volatile struct
     int webcamService;
 } ServiceInitializations;
 
-
 /*
- * the sigint handler, can also be used for cleanup after execution 
- * sig - the signal the program received, can be ignored for our purposes
+ * the signal handler
+ * sig - the signal the program received
  */
-static void sigint_handler(int sig)
+static void signal_handler(int sig)
 {
-	wscLabserver.interrupted = 1;
+    wscLabserver.interrupted = 1;
     pthread_join(wscLabserver.thread, NULL);
     wscControlUnit.interrupted = 1;
     pthread_join(wscControlUnit.thread, NULL);
@@ -47,7 +46,14 @@ static void sigint_handler(int sig)
     if(initializationService && initializationService->open)
         closeIPCConnection(initializationService);
     free(deviceDataCompact);
-    exit(0);
+    if (sig == SIGINT)
+    {
+        exit(0);
+    }
+    else if (sig == SIGUSR1)
+    {
+        system("shutdown -r 1");
+    }
 }
 
 static int handleWebsocketMessage(struct lws* wsi, char* message)
@@ -407,7 +413,8 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
 int main(int argc, char const *argv[])
 {
-    signal(SIGINT, sigint_handler);
+    signal(SIGINT, signal_handler);
+    signal(SIGUSR1, signal_handler);
 
     /* create all needed sockets (except serversocket) */
     if(websocketPrepareContext(&wscLabserver, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
@@ -612,7 +619,7 @@ int main(int argc, char const *argv[])
     pthread_join(webcamService->thread, NULL);
     pthread_join(initializationService->thread, NULL);
 
-    sigint_handler(0);
+    signal_handler(SIGINT);
 
     return 0;
 }
