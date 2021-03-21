@@ -24,6 +24,11 @@ static volatile int initializedProgrammingService = 0;  // indicates whether the
 static void signal_handler(int sig)
 {
     log_debug("received a signal");
+    if (sig == SIGUSR1)
+    {
+        log_debug("scheduling restart");
+        system("shutdown -r 5");
+    }
     if (sig == SIGINT || sig == SIGUSR1)
     {
         JSONDelete(deviceDataJSON);
@@ -43,16 +48,6 @@ static void signal_handler(int sig)
         if(programmingService && programmingService->open)
             closeIPCConnection(programmingService);
         log_debug("cleanup completed");
-        if (sig == SIGINT)
-        {
-            log_debug("exiting");
-            exit(0);
-        }
-        else
-        {
-            log_debug("restarting");
-            system("shutdown -r 1");
-        }
     }
 }
 
@@ -464,8 +459,6 @@ int main(int argc, char const *argv[])
     pthread_join(wscLabserver.thread, NULL);
     pthread_join(commandService->thread, NULL);
     pthread_join(programmingService->thread, NULL);
-
-    signal_handler(SIGINT);
 
     return 0;
 }
