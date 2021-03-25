@@ -18,6 +18,10 @@ Logging = logging/log.h logging/log.c
 if CONTROLUNIT
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiCommandService
 GOLDiCommunicationService_SOURCES = CommunicationServiceCU.c 
+
+GOLDiServicesControlUnitsdir = $(GOLDiServicesdir)/controlunits
+GOLDiServicesMicroControllerdir = $(GOLDiServicesControlUnitsdir)/MicroController
+GOLDiServicesMicroController_DATA = controlunits/MicroController/FPGA.svf
 else
 bin_PROGRAMS = GOLDiCommunicationService GOLDiProgrammingService GOLDiWebcamService GOLDiProtectionService GOLDiInitializationService
 GOLDiCommunicationService_SOURCES = CommunicationServicePS.c 
