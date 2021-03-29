@@ -15,19 +15,29 @@
 static IPCSocketConnection* communicationService;
 static websocketConnection wsc;
 
+/* Structure to contain all our information, so we can pass it to callbacks */
+typedef struct _CustomData 
+{
+    GstElement *pipeline, *videosource, *videoconvert, *appsink;
+    websocketConnection* wsc;
+
+    GMainLoop *main_loop;  /* GLib's Main Loop */
+} CustomData;
+
 /*
  *  this struct contains the information needed to fetch images using ffmpeg
- *  device  - this contains the device-string needed by ffmpeg e.g. v4l2 or x11grab
+ *  source  - this contains the source to be used by gstreamer
  *  address - this contains the address of the used camera 
  *  active  - is used to indicate whether we should send images
  *  both strings are zero-terminated
  */
 struct
 {
-    char*           device;    
+    char*           source;    
     char*           address;
     unsigned int    active:1;
     unsigned int    id;
+    CustomData      gstdata;
 } CameraData;
 
 /*
@@ -37,6 +47,51 @@ struct
 static void sigint_handler(int sig)
 {
     exit(0);
+}
+
+/* The appsink has received a buffer */
+static GstFlowReturn new_sample (GstElement *sink, CustomData *data) 
+{
+    GstSample *sample;
+
+    /* Retrieve the buffer */
+    g_signal_emit_by_name (sink, "pull-sample", &sample);
+    if (sample) {
+        /* The only thing we do in this example is print a * to indicate a received buffer */
+        GstBuffer* jpegBuffer = gst_sample_get_buffer(sample);
+        GstMapInfo map;
+        gst_buffer_map(jpegBuffer, &map, GST_MAP_READ);
+        char* data = (char*)map.data;
+        unsigned int filesize;
+        char* encodedcontent = encodeBase64(data, map.size);
+        JSON* msgJSON = JSONCreateObject();
+        JSONAddNumberToObject(msgJSON, "id", CameraData.id);
+        JSONAddStringToObject(msgJSON, "img", encodedcontent);
+        sendMessageWebsocket(wsc.wsi, encodedcontent);
+        if(strlen(encodedcontent) > 0)
+            free(encodedcontent);
+
+        gst_buffer_unmap(jpegBuffer, &map);
+        return GST_FLOW_OK;
+    }
+
+    return GST_FLOW_ERROR;
+}
+
+/* This function is called when an error message is posted on the bus */
+static void error_cb (GstBus *bus, GstMessage *msg, CustomData *data) 
+{
+    GError *err;
+    gchar *debug_info;
+
+    /* Print error details on the screen */
+    gst_message_parse_error (msg, &err, &debug_info);
+    g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+    g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
+    g_clear_error (&err);
+    g_free (debug_info);
+
+    g_main_loop_quit (data->main_loop);
 }
 
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
@@ -58,13 +113,58 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                     if (!strncmp(cameraTypeJSON->valuestring, "USB", 3))
                     {
-                        CameraData.device = "v4l2";
+                        CameraData.source = "v4l2src";
+                    }
+                    else if (!strncmp(cameraTypeJSON->valuestring, "IP", 2))
+                    {
+                        CameraData.source = "udpsrc";
                     }
 
                     CameraData.address = malloc(strlen(cameraAddressJSON->valuestring)+1);
                     strcpy(CameraData.address, cameraAddressJSON->valuestring);
 
                     CameraData.id = cameraIDJSON->valueint;
+
+                    GstBus *bus;
+
+                    /* Initialize cumstom data structure */
+                    memset (&CameraData.gstdata, 0, sizeof (CameraData.gstdata));
+                    CameraData.gstdata.wsc = &wsc;
+
+                    const char* source = CameraData.source;
+
+                    /* Create the elements */
+                    CameraData.gstdata.videosource = gst_element_factory_make(source, "video-source");
+                    CameraData.gstdata.appsink = gst_element_factory_make("appsink", "app-sink");
+                    CameraData.gstdata.videoconvert = gst_element_factory_make("jpegenc", "video-convert");
+
+                    /* Create the empty pipeline */
+                    CameraData.gstdata.pipeline = gst_pipeline_new("test-pipeline");
+
+                    if (!CameraData.gstdata.pipeline || !CameraData.gstdata.videosource || !CameraData.gstdata.videoconvert|| !CameraData.gstdata.appsink) {
+                        g_printerr ("Not all elements could be created.\n");
+                        return -1;
+                    }
+
+                    /* Configure appsink */
+                    g_object_set (CameraData.gstdata.appsink, "emit-signals", TRUE, NULL);
+                    g_signal_connect (CameraData.gstdata.appsink, "new-sample", G_CALLBACK (new_sample), &CameraData.gstdata);
+
+                    /* Link all elements that can be automatically linked because they have "Always" pads */
+                    gst_bin_add_many (GST_BIN (CameraData.gstdata.pipeline), CameraData.gstdata.videosource, CameraData.gstdata.videoconvert, CameraData.gstdata.appsink, NULL);
+                    if (gst_element_link_many (CameraData.gstdata.videosource, CameraData.gstdata.videoconvert, CameraData.gstdata.appsink, NULL) != TRUE) {
+                        g_printerr ("Elements could not be linked.\n");
+                        gst_object_unref (CameraData.gstdata.pipeline);
+                        return -1;
+                    }
+
+                    /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
+                    bus = gst_element_get_bus (CameraData.gstdata.pipeline);
+                    gst_bus_add_signal_watch (bus);
+                    g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, &CameraData.gstdata);
+                    gst_object_unref (bus);
+
+                    CameraData.gstdata.main_loop = g_main_loop_new(NULL, FALSE);
 
                     JSONDelete(msgJSON);
                     sendMessageIPC(communicationService, IPCMSGTYPE_INITWEBCAMSERVICEFINISHED, serializeInt(1), 1);
@@ -73,12 +173,20 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 
                 case IPCMSGTYPE_STARTEXPERIMENT:
                 {
+                    /* Start playing the pipeline */
+                    gst_element_set_state(CameraData.gstdata.pipeline, GST_STATE_PLAYING);
+
+                    /* set GLib Main Loop to run */
+                    g_main_loop_run(CameraData.gstdata.main_loop);
                     CameraData.active = 1;
                     break;
                 }
 
                 case IPCMSGTYPE_STOPEXPERIMENT:
                 {
+                    /* Stop playing the pipeline and stop GLib Main Loop */
+                    gst_element_set_state(CameraData.gstdata.pipeline, GST_STATE_NULL);
+                    g_main_loop_quit(CameraData.gstdata.main_loop);
                     CameraData.active = 0;
                     break;
                 }
@@ -135,63 +243,12 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
     return result;
 }
 
-/* Structure to contain all our information, so we can pass it to callbacks */
-typedef struct _CustomData 
-{
-    GstElement *pipeline, *videosource, *videoconvert, *appsink;
-    websocketConnection* wsc;
-
-    GMainLoop *main_loop;  /* GLib's Main Loop */
-} CustomData;
-
-/* The appsink has received a buffer */
-static GstFlowReturn new_sample (GstElement *sink, CustomData *data) 
-{
-    GstSample *sample;
-
-    /* Retrieve the buffer */
-    g_signal_emit_by_name (sink, "pull-sample", &sample);
-    if (sample) {
-        /* The only thing we do in this example is print a * to indicate a received buffer */
-        GstBuffer* jpegBuffer = gst_sample_get_buffer(sample);
-        GstMapInfo map;
-        gst_buffer_map(jpegBuffer, &map, GST_MAP_READ);
-        char* data = (char*)map.data;
-        unsigned int filesize;
-        char* encodedcontent = encodeBase64(data, map.size);
-        JSON* msgJSON = JSONCreateObject();
-        JSONAddNumberToObject(msgJSON, "id", CameraData.id);
-        JSONAddStringToObject(msgJSON, "img", encodedcontent);
-        sendMessageWebsocket(wsc.wsi, encodedcontent);
-        if(strlen(encodedcontent) > 0)
-            free(encodedcontent);
-
-        gst_buffer_unmap(jpegBuffer, &map);
-        return GST_FLOW_OK;
-    }
-
-    return GST_FLOW_ERROR;
-}
-
-/* This function is called when an error message is posted on the bus */
-static void error_cb (GstBus *bus, GstMessage *msg, CustomData *data) 
-{
-    GError *err;
-    gchar *debug_info;
-
-    /* Print error details on the screen */
-    gst_message_parse_error (msg, &err, &debug_info);
-    g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
-    g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
-    g_clear_error (&err);
-    g_free (debug_info);
-
-    g_main_loop_quit (data->main_loop);
-}
-
 int main(int argc, char const *argv[])
 {
     signal(SIGINT, sigint_handler);
+
+    /* Initialize GStreamer */
+    gst_init (&argc, &argv);
 
     /* IPC socket creation */
     int fd = createIPCSocket(WEBCAM_SERVICE);
@@ -210,58 +267,10 @@ int main(int argc, char const *argv[])
 
     while(!wsc.connectionEstablished);
 
-    CustomData data;
-    GstBus *bus;
-
-    /* Initialize cumstom data structure */
-    memset (&data, 0, sizeof (data));
-    data.wsc = &wsc;
-
-    /* Initialize GStreamer */
-    gst_init (&argc, &argv);
-
-    /* Create the elements */
-    data.videosource = gst_element_factory_make("v4l2src", "video-source");
-    data.appsink = gst_element_factory_make("appsink", "app-sink");
-    data.videoconvert = gst_element_factory_make("jpegenc", "video-convert");
-
-    /* Create the empty pipeline */
-    data.pipeline = gst_pipeline_new ("test-pipeline");
-
-    if (!data.pipeline || !data.videosource || !data.videoconvert|| !data.appsink) {
-        g_printerr ("Not all elements could be created.\n");
-        return -1;
-    }
-
-    /* Configure appsink */
-    g_object_set (data.appsink, "emit-signals", TRUE, NULL);
-    g_signal_connect (data.appsink, "new-sample", G_CALLBACK (new_sample), &data);
-
-    /* Link all elements that can be automatically linked because they have "Always" pads */
-    gst_bin_add_many (GST_BIN (data.pipeline), data.videosource, data.videoconvert, data.appsink, NULL);
-    if (gst_element_link_many (data.videosource, data.videoconvert, data.appsink, NULL) != TRUE) {
-        g_printerr ("Elements could not be linked.\n");
-        gst_object_unref (data.pipeline);
-        return -1;
-    }
-
-    /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
-    bus = gst_element_get_bus (data.pipeline);
-    gst_bus_add_signal_watch (bus);
-    g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, &data);
-    gst_object_unref (bus);
-
-    /* Start playing the pipeline */
-    gst_element_set_state (data.pipeline, GST_STATE_PLAYING);
-
-    /* Create a GLib Main Loop and set it to run */
-    data.main_loop = g_main_loop_new (NULL, FALSE);
-    g_main_loop_run (data.main_loop);
-
-    /* Free resources */
-    gst_element_set_state (data.pipeline, GST_STATE_NULL);
-    gst_object_unref (data.pipeline);
     pthread_join(communicationService->thread, NULL);
     pthread_join(wsc.thread, NULL);
+    /* Free resources */
+    gst_element_set_state(CameraData.gstdata.pipeline, GST_STATE_NULL);
+    gst_object_unref(CameraData.gstdata.pipeline);
     return 0;
 }

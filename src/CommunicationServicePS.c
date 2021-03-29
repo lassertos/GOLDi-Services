@@ -102,6 +102,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             JSONAddNullToObject(experimentInitAck, "ActuatorData");
             char* msgString = JSONPrint(experimentInitAck);
             sendMessageIPC(protectionService, IPCMSGTYPE_EXPERIMENTINIT, msgString, strlen(msgString));
+            sendMessageIPC(webcamService, IPCMSGTYPE_STARTEXPERIMENT, NULL, 0);
             free(msgString);
             JSONDelete(experimentInitAck);
             break;
@@ -119,6 +120,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
 
             sendMessageWebsocket(wsi, experimentCloseAck);
             //TODO maybe change to IPCMSGTYPE_ENDEXPERIMENT
+            sendMessageIPC(webcamService, IPCMSGTYPE_STOPEXPERIMENT, NULL, 0);
             sendMessageIPC(protectionService, IPCMSGTYPE_STOPPHYSICALSYSTEM, NULL, 0);
 
             JSONDelete(experimentCloseAckJSON);

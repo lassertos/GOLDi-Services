@@ -200,7 +200,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             fwrite(programData, 1, length, write_ptr);
             fclose(write_ptr);
             sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
-            sendMessageIPC(commandService, IPCMSGTYPE_PROGRAMCONTROLUNIT, NULL, 0);
+            sendMessageIPC(commandService, IPCMSGTYPE_STOPCOMMANDSERVICE, NULL, 0);
             break;
         }
 
@@ -350,7 +350,7 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     log_debug("received programming control unit finished message from Programming Service");
                     //TODO check that result values of programming functions are the same, seems like 0 = success
                     int result = deserializeInt(msg.content);
-                    sendMessageIPC(commandService, IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED, NULL, 0); //send only if programming successful
+                    sendMessageIPC(commandService, IPCMSGTYPE_RETURNCOMMANDSERVICE, NULL, 0); //send only if programming successful
                     break;
                 }
 

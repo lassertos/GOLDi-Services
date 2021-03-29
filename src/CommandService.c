@@ -238,9 +238,9 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     break;
                 }
 
-                case IPCMSGTYPE_PROGRAMCONTROLUNIT:
+                case IPCMSGTYPE_STOPCOMMANDSERVICE:
                 {
-                    log_debug("received program control unit message");
+                    log_debug("received stop command service message");
                     stopped = 1;
                     //TODO maybe useless
                     JSON* msgJSON = JSONCreateObject();
@@ -267,9 +267,9 @@ static int messageHandlerIPC(IPCSocketConnection* ipcsc)
                     break;
                 }
 
-                case IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED:
+                case IPCMSGTYPE_RETURNCOMMANDSERVICE:
                 {
-                    log_debug("received program control unit finished message");
+                    log_debug("received return command service message");
                     stopped = 0;
                     break;
                 }
