@@ -18,6 +18,8 @@ static unsigned int deviceID;                       // here we save the DeviceID
 static JSON* deviceDataCompactJSON;                 // here a compact version of the DeviceData is kept in JSON-format
 static char* deviceDataCompact;                     // here a compact version of the DeviceData is kept as a string
 static unsigned int initializingPS = 0;             // indicates whether the physical system is currently being initialized
+static unsigned int inExperiment = 0;               // indicates whether the physical system is currently part of an experiment
+static unsigned int restartRequired = 0;            // indicates whether a restart is needed
 
 /* struct containing result of service initializations */
 volatile struct 
@@ -36,8 +38,16 @@ static void signal_handler(int sig)
     log_debug("received a signal");
     if (sig == SIGUSR1)
     {
-        log_debug("scheduling restart");
-        system("shutdown -r 5");
+        if (inExperiment)
+        {
+            log_debug("scheduling restart");
+            system("shutdown -r 5");
+        }
+        else 
+        {
+            log_debug("restart required for update");
+            restartRequired = 1;
+        }
     }
     if (sig == SIGINT || sig == SIGUSR1)
     {
@@ -84,6 +94,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         case WebsocketCommandExperimentInit:
         {
             log_debug("received experiment initialization message from labserver");
+            inExperiment = 1;
             char* experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valuestring;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
             JSON* experimentInitAck = JSONCreateObject();
@@ -125,6 +136,12 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
 
             JSONDelete(experimentCloseAckJSON);
             free(experimentCloseAck);
+
+            inExperiment = 0;
+            if (restartRequired)
+            {
+                signal_handler(SIGUSR1);
+            }
             break;
         }
 

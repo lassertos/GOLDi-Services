@@ -16,6 +16,8 @@ static char* deviceData;                                // here the DeviceData i
 static unsigned int deviceID;                           // here we save the DeviceID
 static JSON* experimentInitAck;                         // this is needed to be able to delay the sending of the Ack
 static volatile int initializedProgrammingService = 0;  // indicates whether the ProgrammingService has been initialized successfully 
+static unsigned int inExperiment = 0;                   // indicates whether the Control Unit is currently part of an experiment
+static unsigned int restartRequired = 0;                // indicates whether a restart is needed
 
 /*
  * the signal handler
@@ -26,8 +28,16 @@ static void signal_handler(int sig)
     log_debug("received a signal");
     if (sig == SIGUSR1)
     {
-        log_debug("scheduling restart");
-        system("shutdown -r 5");
+        if (inExperiment)
+        {
+            log_debug("scheduling restart");
+            system("shutdown -r 5");
+        }
+        else 
+        {
+            log_debug("restart required for update");
+            restartRequired = 1;
+        }
     }
     if (sig == SIGINT || sig == SIGUSR1)
     {
@@ -92,6 +102,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         case WebsocketCommandExperimentData:
         {
             log_debug("received experiment data message from labserver");
+            inExperiment = 1;
             JSONDeleteItemFromObject(msgJSON, "Command");
             JSONDeleteItemFromObject(msgJSON, "SenderID");
             char* experimentData = JSONPrint(msgJSON);
@@ -151,6 +162,12 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             sendMessageIPC(commandService, IPCMSGTYPE_ENDEXPERIMENT, NULL, 0);
             JSONDelete(experimentCloseAckJSON);
             free(experimentCloseAck);
+            
+            inExperiment = 0;
+            if (restartRequired)
+            {
+                signal_handler(SIGUSR1);
+            }
             break;
         }
 
