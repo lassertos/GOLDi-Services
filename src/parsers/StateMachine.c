@@ -1,6 +1,7 @@
 #include "StateMachine.h"
 #include "json.h"
 #include "string.h"
+#include "../logging/log.h"
 
 static StateMachineState* getStateMachineStateByName(char* name, StateMachine* stateMachine)
 {
@@ -46,7 +47,7 @@ StateMachine* parseStateMachines(char* string, unsigned int length, Variable* va
             stateMachines[stateMachineIndex].states[currentIndex].isActive = 0;
             stateMachines[stateMachineIndex].states[currentIndex].outputs = NULL;
             stateMachines[stateMachineIndex].states[currentIndex].outputCount = 0;
-            variablesNew[variablesCount+currentIndex] = (Variable){stateMachines[stateMachineIndex].states[currentIndex].name, &stateMachines[stateMachineIndex].states[currentIndex].isActive};
+            variablesNew[variablesCount+currentIndex] = (Variable){OperandTypeBinary, stateMachines[stateMachineIndex].states[currentIndex].name, &stateMachines[stateMachineIndex].states[currentIndex].isActive, 1};
             currentIndex++;
         }
         
@@ -87,7 +88,9 @@ StateMachine* parseStateMachines(char* string, unsigned int length, Variable* va
             {
                 currentState->outputs[outputIndex].actuatorID = malloc(strlen(jsonStateOutputValue->string)+1);
                 strcpy(currentState->outputs[outputIndex].actuatorID, jsonStateOutputValue->string);
-                currentState->outputs[outputIndex].value = (long long)JSONGetNumberValue(jsonStateOutputValue);
+                Variable* currentActuator = getVariableWithName(variables, jsonStateOutputValue->string, variablesCount);
+                currentState->outputs[outputIndex].value = unbeautifyActuatorValue(jsonStateOutputValue, currentActuator->type);
+                currentState->outputs[outputIndex].type = currentActuator->type;
             }
         }
 
@@ -120,32 +123,38 @@ int updateStateMachine(StateMachine* stateMachine)
         {
             stateMachine->states[i].isActive = resultTransitionFunction;
             stateMachine->activeState = &stateMachine->states[i];
+            break;
         }
         else
         {
-            return 1;
+            return 0;
         }
     }
 
-    return 0;
+    return 1;
 }
 
 int executeStateMachine(StateMachineExecution* execution)
 {
+    log_debug("current state: %s, end state: %s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
     while(strcmp(execution->stateMachine->activeState->name, execution->stateMachine->endState->name) != 0)
     {
         if (execution->stopped)
         {
-            return 0;
-        }
-        if (updateStateMachine(execution->stateMachine))
-        {
-            execution->stopped = 1;
+            log_debug("execution has been stopped");
             return 1;
         }
+        if (!updateStateMachine(execution->stateMachine))
+        {
+            log_debug("an error has occurred during the update of the Statemachine");
+            execution->stopped = 1;
+            return 0;
+        }
     }
+    log_debug("current state: %s, end state: %s", execution->stateMachine->activeState->name, execution->stateMachine->endState->name);
+    log_debug("endstate has been reached");
     execution->stopped = 1;
-    return 0;
+    return 1;
 }
 
 void resetStateMachine(StateMachine* stateMachine)
@@ -192,14 +201,25 @@ void printStateMachineInfo(StateMachine* stateMachine)
     {
         printf("    State %s:\n", stateMachine->states[i].name);
         printf("    {\n");
-        printf("        State Value: %lld\n", stateMachine->states[i].isActive);
+        printf("        State Value: %d\n", stateMachine->states[i].isActive);
         printf("        State Transition Function: ");
         printBooleanExpression(stateMachine->states[i].transitionFunction);
         printf("        State Outputs: \n");
         printf("        {\n");
         for (int j = 0; j < stateMachine->states[i].outputCount; j++)
         {
-            printf("            %s: %lld\n", stateMachine->states[i].outputs[j].actuatorID, stateMachine->states[i].outputs[j].value);
+            printf("            %s: [", stateMachine->states[i].outputs[j].actuatorID);
+            for (int k = 0; k < getValueSizeOfSensorType(stateMachine->states[i].outputs[j].type); k++)
+            {
+                if (!(k == getValueSizeOfSensorType(stateMachine->states[i].outputs[j].type)-1)) 
+                {
+                    printf("%d, ", stateMachine->states[i].outputs[j].value[k]);
+                }
+                else
+                {
+                    printf("%d]\n", stateMachine->states[i].outputs[j].value[k]);
+                }
+            }
         }
         printf("        }\n");
         printf("    }\n");

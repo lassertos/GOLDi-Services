@@ -7,8 +7,6 @@
 #include "parsers/json.h"
 #include "logging/log.h"
 
-//TODO add signal handler for updates
-
 /* global variables needed for execution */
 static websocketConnection wscLabserver;            // the websocket to the Labserver
 static websocketConnection wscControlUnit;          // the websocket to the Control Unit
@@ -20,6 +18,8 @@ static unsigned int deviceID;                       // here we save the DeviceID
 static JSON* deviceDataCompactJSON;                 // here a compact version of the DeviceData is kept in JSON-format
 static char* deviceDataCompact;                     // here a compact version of the DeviceData is kept as a string
 static unsigned int initializingPS = 0;             // indicates whether the physical system is currently being initialized
+static unsigned int inExperiment = 0;               // indicates whether the physical system is currently part of an experiment
+static unsigned int restartRequired = 0;            // indicates whether a restart is needed
 
 /* struct containing result of service initializations */
 volatile struct 
@@ -29,25 +29,49 @@ volatile struct
     int webcamService;
 } ServiceInitializations;
 
-
 /*
- * the sigint handler, can also be used for cleanup after execution 
- * sig - the signal the program received, can be ignored for our purposes
+ * the signal handler
+ * sig - the signal the program received
  */
-static void sigint_handler(int sig)
+static void signal_handler(int sig)
 {
-	wscLabserver.interrupted = 1;
-    pthread_join(wscLabserver.thread, NULL);
-    wscControlUnit.interrupted = 1;
-    pthread_join(wscControlUnit.thread, NULL);
-    if(protectionService && protectionService->open)
-        closeIPCConnection(protectionService);
-    if(webcamService && webcamService->open)
-        closeIPCConnection(webcamService);
-    if(initializationService && initializationService->open)
-        closeIPCConnection(initializationService);
-    free(deviceDataCompact);
-    exit(0);
+    log_debug("received a signal");
+    if (sig == SIGUSR1)
+    {
+        if (inExperiment)
+        {
+            log_debug("scheduling restart");
+            system("shutdown -r 5");
+        }
+        else 
+        {
+            log_debug("restart required for update");
+            restartRequired = 1;
+        }
+    }
+    if (sig == SIGINT || sig == SIGUSR1)
+    {
+        if (wscLabserver.connectionEstablished)
+        {
+            wscLabserver.interrupted = 1;
+            pthread_join(wscLabserver.thread, NULL);
+        }
+        if (wscControlUnit.connectionEstablished)
+        {
+            wscControlUnit.interrupted = 1;
+            pthread_join(wscControlUnit.thread, NULL);
+        }
+        if(protectionService && protectionService->open)
+            closeIPCConnection(protectionService);
+        if(webcamService && webcamService->open)
+            closeIPCConnection(webcamService);
+        if(initializationService && initializationService->open)
+            closeIPCConnection(initializationService);
+        free(deviceDataCompact);
+        JSONDelete(deviceDataCompactJSON);
+        log_debug("cleanup completed");
+        exit(0);
+    }
 }
 
 static int handleWebsocketMessage(struct lws* wsi, char* message)
@@ -69,12 +93,14 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* start sending data and send ExperimentInitAck */
         case WebsocketCommandExperimentInit:
         {
-            int experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valueint;
+            log_debug("received experiment initialization message from labserver");
+            inExperiment = 1;
+            char* experimentID = JSONGetObjectItem(JSONGetObjectItem(msgJSON, "data"), "ExperimentID")->valuestring;
             unsigned int virtualPartner = JSONIsTrue(JSONGetObjectItem(msgJSON, "virtualPartner"));
             JSON* experimentInitAck = JSONCreateObject();
             JSONAddNumberToObject(experimentInitAck, "SenderID", deviceID);
             JSONAddNumberToObject(experimentInitAck, "Command", WebsocketCommandExperimentInitAck);
-            JSONAddNumberToObject(experimentInitAck, "ExperimentID", experimentID);
+            JSONAddStringToObject(experimentInitAck, "ExperimentID", experimentID);
             if (virtualPartner == 0)
             {
                 JSONAddFalseToObject(experimentInitAck, "virtualPartner");
@@ -87,6 +113,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
             JSONAddNullToObject(experimentInitAck, "ActuatorData");
             char* msgString = JSONPrint(experimentInitAck);
             sendMessageIPC(protectionService, IPCMSGTYPE_EXPERIMENTINIT, msgString, strlen(msgString));
+            sendMessageIPC(webcamService, IPCMSGTYPE_STARTEXPERIMENT, NULL, 0);
             free(msgString);
             JSONDelete(experimentInitAck);
             break;
@@ -95,6 +122,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* stop sending data, stop all actuators and send ExperimentCloseAck */
         case WebsocketCommandExperimentClose:
         {
+            log_debug("received experiment close message from labserver");
             //TODO add steps to stop current experiment execution
             //send message to protection service and maybe webcam service to stop their execution
             JSON* experimentCloseAckJSON = JSONCreateObject();
@@ -103,16 +131,24 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
 
             sendMessageWebsocket(wsi, experimentCloseAck);
             //TODO maybe change to IPCMSGTYPE_ENDEXPERIMENT
+            sendMessageIPC(webcamService, IPCMSGTYPE_STOPEXPERIMENT, NULL, 0);
             sendMessageIPC(protectionService, IPCMSGTYPE_STOPPHYSICALSYSTEM, NULL, 0);
 
             JSONDelete(experimentCloseAckJSON);
             free(experimentCloseAck);
+
+            inExperiment = 0;
+            if (restartRequired)
+            {
+                signal_handler(SIGUSR1);
+            }
             break;
         }
 
         /* start accepting actuator values from the control unit */
         case WebsocketCommandRunPS:
         {
+            log_debug("received run physical system message from labserver");
             sendMessageIPC(protectionService, IPCMSGTYPE_RUNPHYSICALSYSTEM, NULL, 0);
             break;
         }
@@ -120,6 +156,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* stop accepting actuator values from the control unit */
         case WebsocketCommandStopPS:
         {
+            log_debug("received stop physical system message from labserver");
             sendMessageIPC(protectionService, IPCMSGTYPE_STOPPHYSICALSYSTEM, NULL, 0);
             if (initializingPS)
             {
@@ -132,6 +169,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* forward to Protection Service if not currently running an initialization program */
         case WebsocketCommandActuatorData:
         {
+            log_debug("received actuator data message from control unit");
             if (!initializingPS)
             {
                 JSON* actuatorDataJSON = JSONGetObjectItem(msgJSON, "ActuatorData");
@@ -145,6 +183,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* de-/activate the light */
         case WebsocketCommandLight:
         {
+            log_debug("received light switch message from labserver");
             //TODO implement the light switching mechanism
             break;
         }
@@ -152,6 +191,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* used to set the values of virtual sensors e.g. User Button 3AxisPortal */
         case WebsocketCommandUserVariable:
         {
+            log_debug("received user variable message from labserver");
             sendMessageIPC(protectionService, IPCMSGTYPE_SETUSERVARIABLE, message, strlen(message));
             break;
         }
@@ -159,6 +199,7 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* initializes the physical system to the chosen state */
         case WebsocketCommandInitPS:
         {
+            log_debug("received physical system initialization message from labserver");
             unsigned char initializer = JSONGetObjectItem(msgJSON, "Initializer")->valueint;
             initializingPS = 1;
             sendMessageIPC(initializationService, IPCMSGTYPE_STARTINITIALIZATION, &initializer, 1);
@@ -168,12 +209,14 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
         /* control unit acknowledged the delay fault, calculate rtt and exit after some time if the delay fault doesn't get resolved */
         case WebsocketCommandDelayFaultAck:
         {
+            log_debug("received delay fault ack message from control unit");
             sendMessageIPC(protectionService, IPCMSGTYPE_DELAYBASEDFAULTACK, message, strlen(message));
             break;
         }
 
         default:
         {
+            log_error("received websocket message of unknown type");
             result = -1;
             break;
         }
@@ -186,191 +229,216 @@ static int handleWebsocketMessage(struct lws* wsi, char* message)
 
 static int messageHandlerIPC(IPCSocketConnection* ipcsc)
 {
-    while(1)
+    while(ipcsc->open)
     {
-        if(ipcsc->open)
+        if(hasMessages(ipcsc))
         {
-            if(hasMessages(ipcsc))
+            Message msg = receiveMessageIPC(ipcsc);
+            //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
+            switch (msg.type)
             {
-                log_info("receive IPC message");
-                Message msg = receiveMessageIPC(ipcsc);
-                //log_debug("\nMESSAGE TYPE:    %d\nMESSAGE LENGTH:  %d\nMESSAGE CONTENT: %s", msg.type, msg.length, msg.content);
-                switch (msg.type)
+                case IPCMSGTYPE_ACTUATORDATA:
                 {
-                    case IPCMSGTYPE_SENSORDATA:
-                    {
-                        JSON* msgJSON = JSONParse(msg.content);
-
-                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
-                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandSensorData);
-
-                        char* message = JSONPrint(msgJSON);
-                        if (wscControlUnit.connectionEstablished && !wscControlUnit.interrupted)
-                        {
-                            sendMessageWebsocket(wscControlUnit.wsi, message);
-                        }
-                        else
-                        {
-                            sendMessageWebsocket(wscLabserver.wsi, message);
-                        }
-
-                        free(message);
-                        JSONDelete(msgJSON);
-                    }
-
-                    case IPCMSGTYPE_DELAYBASEDFAULT:
-                    {
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
-                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayFault);
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageWebsocket(wscLabserver.wsi, message);
-                        if (wscControlUnit.connectionEstablished && !wscControlUnit.interrupted)
-                        {
-                            sendMessageWebsocket(wscControlUnit.wsi, message);
-                        }
-                        JSONDelete(msgJSON);
-                        free(message);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_DELAYBASEDERROR:
-                    {
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
-                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayError);
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageWebsocket(wscLabserver.wsi, message);
-                        JSONDelete(msgJSON);
-                        free(message);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_USERBASEDERROR:
-                    {
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
-                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandUserError);
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageWebsocket(wscLabserver.wsi, message);
-                        JSONDelete(msgJSON);
-                        free(message);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INFRASTRUCTUREBASEDERROR:
-                    {
-                        JSON* msgJSON = JSONParse(msg.content);
-                        JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
-                        JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandInfrastructureError);
-                        char* message = JSONPrint(msgJSON);
-                        sendMessageWebsocket(wscLabserver.wsi, message);
-                        JSONDelete(msgJSON);
-                        free(message);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INITPROTECTIONFINISHED:
-                    {
-                        int success = deserializeInt(msg.content);
-                        if (!success)
-                        {
-                            ServiceInitializations.protectionService = -1;
-                        }
-                        else
-                        {
-                            ServiceInitializations.protectionService = 1;
-                        }
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED:
-                    {
-                        int success = deserializeInt(msg.content);
-                        if (!success)
-                        {
-                            ServiceInitializations.initializationService = -1;
-                        }
-                        else
-                        {
-                            ServiceInitializations.initializationService = 1;
-                        }
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INITIALIZATIONFINISHED:
-                    {
-                        int success = deserializeInt(msg.content);
-                        if (!success)
-                        {
-                            //TODO maybe add something but doesn't seem necessary right now
-                        }
-                        else
-                        {   
-                            //TODO maybe add something but doesn't seem necessary right now
-                        }
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INITWEBCAMSERVICEFINISHED:
-                    {
-                        int success = deserializeInt(msg.content);
-                        if (!success)
-                        {
-                            ServiceInitializations.webcamService = -1;
-                        }
-                        else
-                        {
-                            ServiceInitializations.webcamService = 1;
-                        }
-                        break;
-                    }
-
-                    case IPCMSGTYPE_EXPERIMENTINIT:
-                    {
-                        sendMessageWebsocket(wscLabserver.wsi, msg.content);
-                        break;
-                    }
-
-                    case IPCMSGTYPE_INTERRUPTED:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content);
-                        return -1;
-                        break;
-                    }
-
-                    case IPCMSGTYPE_CLOSEDCONNECTION:
-                    {
-                        ipcsc->open = 0;
-                        closeIPCConnection(ipcsc);
-                        free(msg.content);
-                        return 0;
-                        break;
-                    }
-
-                    default:
-                    {
-                        break;
-                    }
+                    log_debug("received new actuator data from Initialization Service");
+                    sendMessageIPC(protectionService, IPCMSGTYPE_ACTUATORDATA, msg.content, msg.length);
+                    break;
                 }
-                free(msg.content);   
+
+                case IPCMSGTYPE_SENSORDATA:
+                {
+                    log_debug("received new sensor data from Protection Service");
+
+                    if (initializingPS)
+                    {
+                        sendMessageIPC(initializationService, IPCMSGTYPE_SENSORDATA, msg.content, msg.length);
+                    }
+
+                    JSON* msgJSON = JSONParse(msg.content);
+
+                    JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                    JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandSensorData);
+
+                    char* message = JSONPrint(msgJSON);
+                    if (wscControlUnit.connectionEstablished && !wscControlUnit.interrupted)
+                    {
+                        sendMessageWebsocket(wscControlUnit.wsi, message);
+                    }
+                    else
+                    {
+                        sendMessageWebsocket(wscLabserver.wsi, message);
+                    }
+
+                    free(message);
+                    JSONDelete(msgJSON);
+                    break;
+                }
+
+                case IPCMSGTYPE_DELAYBASEDFAULT:
+                {
+                    log_debug("received delay based fault message from Protection Service");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                    JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayFault);
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageWebsocket(wscLabserver.wsi, message);
+                    if (wscControlUnit.connectionEstablished && !wscControlUnit.interrupted)
+                    {
+                        sendMessageWebsocket(wscControlUnit.wsi, message);
+                    }
+                    JSONDelete(msgJSON);
+                    free(message);
+                    break;
+                }
+
+                case IPCMSGTYPE_DELAYBASEDERROR:
+                {
+                    log_debug("received delay based error message from Protection Service");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                    JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandDelayError);
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageWebsocket(wscLabserver.wsi, message);
+                    JSONDelete(msgJSON);
+                    free(message);
+                    break;
+                }
+
+                case IPCMSGTYPE_USERBASEDERROR:
+                {
+                    log_debug("received user based error message from Protection Service");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                    JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandUserError);
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageWebsocket(wscLabserver.wsi, message);
+                    JSONDelete(msgJSON);
+                    free(message);
+                    break;
+                }
+
+                case IPCMSGTYPE_INFRASTRUCTUREBASEDERROR:
+                {
+                    log_debug("received infrastructure based error message from Protection Service");
+                    JSON* msgJSON = JSONParse(msg.content);
+                    JSONAddNumberToObject(msgJSON, "SenderID", deviceID);
+                    JSONAddNumberToObject(msgJSON, "Command", WebsocketCommandInfrastructureError);
+                    char* message = JSONPrint(msgJSON);
+                    sendMessageWebsocket(wscLabserver.wsi, message);
+                    JSONDelete(msgJSON);
+                    free(message);
+                    break;
+                }
+
+                case IPCMSGTYPE_INITPROTECTIONFINISHED:
+                {
+                    log_debug("received initialization finished message from Protection Service");
+                    int success = deserializeInt(msg.content);
+                    if (!success)
+                    {
+                        log_debug("initialization of Protection Service failed");
+                        ServiceInitializations.protectionService = -1;
+                    }
+                    else
+                    {
+                        log_debug("initialization of Protection Service succeded");
+                        ServiceInitializations.protectionService = 1;
+                    }
+                    break;
+                }
+
+                case IPCMSGTYPE_INITINITALIZATIONSERVICEFINISHED:
+                {
+                    log_debug("received initialization finished message from Initialization Service");
+                    int success = deserializeInt(msg.content);
+                    if (!success)
+                    {
+                        log_debug("initialization of Initialization Service failed");
+                        ServiceInitializations.initializationService = -1;
+                    }
+                    else
+                    {
+                        log_debug("initialization of Initialization Service succeded");
+                        ServiceInitializations.initializationService = 1;
+                    }
+                    break;
+                }
+
+                case IPCMSGTYPE_INITIALIZATIONFINISHED:
+                {
+                    log_debug("received initialization of physical system finished message from Initialization Service");
+                    int success = deserializeInt(msg.content);
+                    if (!success)
+                    {
+                        log_debug("initialization of Physical System failed");
+                        //TODO maybe add something but doesn't seem necessary right now
+                    }
+                    else
+                    {   
+                        log_debug("initialization of Physical System succeded");
+                        //TODO maybe add something but doesn't seem necessary right now
+                    }
+                    break;
+                }
+
+                case IPCMSGTYPE_INITWEBCAMSERVICEFINISHED:
+                {
+                    log_debug("received initialization finished message from Webcam Service");
+                    int success = deserializeInt(msg.content);
+                    if (!success)
+                    {
+                        ServiceInitializations.webcamService = -1;
+                    }
+                    else
+                    {
+                        ServiceInitializations.webcamService = 1;
+                    }
+                    break;
+                }
+
+                case IPCMSGTYPE_EXPERIMENTINIT:
+                {
+                    log_debug("received experiment initialization message from Protection Service");
+                    sendMessageWebsocket(wscLabserver.wsi, msg.content);
+                    break;
+                }
+
+                case IPCMSGTYPE_INTERRUPTED:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return -1;
+                    break;
+                }
+
+                case IPCMSGTYPE_CLOSEDCONNECTION:
+                {
+                    ipcsc->open = 0;
+                    closeIPCConnection(ipcsc);
+                    free(msg.content);
+                    return 0;
+                    break;
+                }
+
+                default:
+                {
+                    log_error("received IPC message of unknown type");
+                    break;
+                }
             }
-        }
-        else
-        {
-            break;
+            free(msg.content);   
         }
     }
+    return 0;
 }
 
 int main(int argc, char const *argv[])
 {
-    signal(SIGINT, sigint_handler);
+    signal(SIGINT, signal_handler);
+    signal(SIGUSR1, signal_handler);
 
     /* create all needed sockets (except serversocket) */
-    if(websocketPrepareContext(&wscLabserver, COMMUNICATION_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
+    if(websocketPrepareContext(&wscLabserver, WEBSOCKET_PROTOCOL, GOLDi_SERVERADDRESS, GOLDi_SERVERPORT, handleWebsocketMessage, 0))
     {
         return -1;
     }
@@ -427,8 +495,6 @@ int main(int argc, char const *argv[])
     strcat(fpgaSVFPath, experimentType);
     strcat(fpgaSVFPath, "/");
     strcat(fpgaSVFPath, FPGASVF_FILENAME);
-    char* fpgaSVFContent = readFile(fpgaSVFPath, NULL);
-    free(fpgaSVFPath);
 
     JSON* jsonExperimentConfig = JSONParse(experimentConfigContent);
     free(experimentConfigContent);
@@ -444,14 +510,14 @@ int main(int argc, char const *argv[])
 
     /* before continuing to parse try to create serversocket for wsc with Control Unit */
     char* ipAdress = JSONGetObjectItem(JSONGetObjectItem(jsonDeviceConfig, "Network"), "LocalIP")->valuestring;
-    if(websocketPrepareContext(&wscControlUnit, COMMUNICATION_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 1))
+    if(websocketPrepareContext(&wscControlUnit, WEBSOCKET_PROTOCOL, ipAdress, GOLDi_SERVERPORT, handleWebsocketMessage, 1))
     {
         return -1;
     }
 
     /* program the fpga */
-    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFContent, strlen(fpgaSVFContent));
-    free(fpgaSVFContent);
+    sendMessageIPC(programmingService, IPCMSGTYPE_PROGRAMFPGA, fpgaSVFPath, strlen(fpgaSVFPath));
+    free(fpgaSVFPath);
 
     /* initialize Protection Service */
     log_info("initializing Protection Service");
@@ -484,7 +550,7 @@ int main(int argc, char const *argv[])
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Actuators", jsonActuators);
     JSONAddItemReferenceToObject(jsonInitializationInitMsg, "Initializers", jsonInitializers);
     char* stringInitializationInitMsg = JSONPrint(jsonInitializationInitMsg);
-    sendMessageIPC(protectionService, IPCMSGTYPE_INITINITIALIZATION, stringInitializationInitMsg, strlen(stringInitializationInitMsg));
+    sendMessageIPC(initializationService, IPCMSGTYPE_INITINITIALIZATION, stringInitializationInitMsg, strlen(stringInitializationInitMsg));
 
     JSONDelete(jsonInitializationInitMsg);
     free(stringInitializationInitMsg);
@@ -573,8 +639,6 @@ int main(int argc, char const *argv[])
     pthread_join(protectionService->thread, NULL);
     pthread_join(webcamService->thread, NULL);
     pthread_join(initializationService->thread, NULL);
-
-    sigint_handler(0);
 
     return 0;
 }

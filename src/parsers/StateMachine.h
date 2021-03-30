@@ -1,12 +1,14 @@
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 
-#include "ExpressionParsers.h"
+#include "BooleanExpressionParser.h"
+#include "../interfaces/SensorsActuators.h"
 
 typedef struct
 {
-    char*       actuatorID;
-    long long   value;  
+    char*           actuatorID;
+    ActuatorType    type;
+    char*           value;  
 } StateMachineOutput;
 
 typedef struct 
@@ -15,7 +17,7 @@ typedef struct
     BooleanExpression*  transitionFunction;
     StateMachineOutput* outputs;
     unsigned int        outputCount;
-    unsigned long long  isActive; //long long because it can be a part of a Boolean Expression needs to be tested if it can be made smaller
+    unsigned char       isActive; 
 } StateMachineState;
 
 typedef struct 

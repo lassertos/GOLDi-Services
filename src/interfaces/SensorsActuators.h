@@ -1,13 +1,12 @@
 #ifndef SENSORSACTUATORS_H
 #define SENSORSACTUATORS_H
 
-#include "../parsers/ExpressionParsers.h"
-#include "spi.h"
 #include "../parsers/json.h"
 #include <stdio.h>
 
 typedef enum 
 {
+    SensorTypeUnknown,
     SensorTypeBinary,
     SensorTypeAnalog,
     SensorTypeProtocol
@@ -15,6 +14,7 @@ typedef enum
 
 typedef enum 
 {
+    ActuatorTypeUnknown,
     ActuatorTypeBinary,
     ActuatorTypeAnalog,
     ActuatorTypeProtocol
@@ -23,53 +23,37 @@ typedef enum
 typedef struct 
 {
     char* sensorID;
-    long long value;
+    SensorType sensorType;
+    char* value;
 } SensorDataPacket;
 
 typedef struct 
 {
     char* actuatorID;
-    long long value;
+    ActuatorType actuatorType;
+    char* value;
 } ActuatorDataPacket;
 
 typedef struct
 {
-    char*                   sensorID;
-    SensorType              type;
-    long long               value;
-    unsigned char           pinMapping;
-    #ifdef EXTENDED_SENSORS_ACTUATORS
-    spiCommand              command;
-    double                  valueDouble;
-    MathematicalExpression* mathExpr;
-    unsigned int            isVirtual;
-    #endif
+    char*           sensorID;
+    SensorType      type;
+    char*           value;
+    unsigned char   pinMapping;
+    unsigned int    isVirtual;
 } Sensor;
 
 typedef struct
 {
-    char*                   actuatorID;
-    ActuatorType            type;
-    long long               value;
-    unsigned char           pinMapping;
-    #ifdef EXTENDED_SENSORS_ACTUATORS
-    spiCommand              command;
-    char*                   stopData;
-    double                  valueDouble;
-    MathematicalExpression* mathExpr;
-    #else
-    long long               stopValue;
-    #endif
+    char*           actuatorID;
+    ActuatorType    type;
+    char*           value;
+    unsigned char   pinMapping;
+    char*           stopValue;
 } Actuator;
 
-
-#ifdef EXTENDED_SENSORS_ACTUATORS
-void SPIAnswerToSensorValue(Sensor* sensor, spiAnswer answer);
-char* ActuatorValueToSPIData(Actuator* actuator);
-#endif
-
 Sensor* parseSensors(char* str, int length, unsigned int* sensorCount);
-Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount);
+Actuator* parseActuators(char* str, int length, unsigned int* actuatorCount, unsigned int sensorCount);
 
 SensorDataPacket* parseSensorDataPackets(char* str, int length, unsigned int* packetCount);
 ActuatorDataPacket* parseActuatorDataPackets(char* str, int length, unsigned int* packetCount);
@@ -78,6 +62,12 @@ JSON* ActuatorDataPacketToJSON(ActuatorDataPacket packet);
 
 Sensor* getSensorWithID(Sensor* sensors, char* id, int sensorcount);
 Actuator* getActuatorWithID(Actuator* actuators, char* id, int actuatorcount);
+
+unsigned int getValueSizeOfSensorType(SensorType sensorType);
+unsigned int getValueSizeOfActuatorType(ActuatorType actuatorType);
+
+char* unbeautifySensorValue(JSON* valueJSON, SensorType sensorType);
+char* unbeautifyActuatorValue(JSON* valueJSON, ActuatorType actuatorType);
 
 void destroySensors(Sensor* sensors, unsigned int sensorCount);
 void destroyActuators(Actuator* actuators, unsigned int actuatorCount);

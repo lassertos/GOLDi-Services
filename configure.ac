@@ -10,5 +10,7 @@ esac],[cu=false])
 AM_CONDITIONAL([CONTROLUNIT], [test x$cu = xtrue])
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_PROG_RANLIB
+PKG_CHECK_MODULES([LWS],[libwebsockets])
+PKG_CHECK_MODULES([GSTREAMER],[gstreamer-1.0 gstreamer-plugins-base-1.0])
 AC_PROG_CC
 AC_OUTPUT

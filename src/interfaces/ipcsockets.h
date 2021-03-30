@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "../utils/utils.h"
+#include <signal.h>
 
 #define COMMUNICATION_SERVICE "GOLDiCommunicationService"
 #define PROGRAMMING_SERVICE "GOLDiProgrammingService"
@@ -33,8 +34,7 @@ typedef struct
 {
     int             fd;
     char*           socketname;
-    char*           buffer;
-    int             open;
+    volatile int    open;
     pthread_mutex_t mutex;
     pthread_t       thread;
 } IPCSocketConnection;
@@ -76,7 +76,9 @@ typedef enum
     IPCMSGTYPE_INITWEBCAMSERVICE                    = 33,
     IPCMSGTYPE_INITWEBCAMSERVICEFINISHED            = 34,
     IPCMSGTYPE_PROGRAMCONTROLUNITFINISHED           = 35,
-    IPCMSGTYPE_EXPERIMENTINIT                       = 36
+    IPCMSGTYPE_EXPERIMENTINIT                       = 36,
+    IPCMSGTYPE_STOPCOMMANDSERVICE                   = 37,
+    IPCMSGTYPE_RETURNCOMMANDSERVICE                 = 38
 } MessageType;
 
 /*
@@ -89,11 +91,11 @@ typedef struct
     char*           content;
 } Message;
 
-typedef int(*IPCmsgHandler)(IPCSocketConnection* ipcsc);
+typedef int(*IPCMsgHandler)(IPCSocketConnection* ipcsc);
 
-int createIPCSocket();
-IPCSocketConnection* connectToIPCSocket(char* socketname, IPCmsgHandler messageHandler);
-IPCSocketConnection* acceptIPCConnection(int fd, char* socketname, IPCmsgHandler messageHandler);
+int createIPCSocket(char* socketname);
+IPCSocketConnection* connectToIPCSocket(char* socketname, IPCMsgHandler messageHandler);
+IPCSocketConnection* acceptIPCConnection(int fd, IPCMsgHandler messageHandler);
 int sendMessageIPC(IPCSocketConnection* ipcsc, MessageType messageType, char* msg, int length);
 Message receiveMessageIPC(IPCSocketConnection* ipcsc);
 void closeIPCConnection(IPCSocketConnection* ipcsc);

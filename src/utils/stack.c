@@ -1,7 +1,7 @@
 #include "stack.h"
 #include <stdlib.h>
 
-int stack_destroy(stack_t *stack) 
+int stack_destroy(stack_dt *stack) 
 {
     if (stack == NULL)
     {
@@ -20,7 +20,7 @@ int stack_destroy(stack_t *stack)
 }
 
 
-int stack_empty(stack_t *stack) 
+int stack_empty(stack_dt *stack) 
 {
 
     if (stack == NULL || stack->top == NULL) 
@@ -35,9 +35,9 @@ int stack_empty(stack_t *stack)
 }
 
 
-stack_t *stack_new(void) 
+stack_dt *stack_new(void) 
 {
-    stack_t *stack = malloc(sizeof(*stack));
+    stack_dt *stack = malloc(sizeof(*stack));
 
     if (stack == NULL)  
     {
@@ -49,7 +49,7 @@ stack_t *stack_new(void)
 }
 
 
-void *stack_pop(stack_t *stack) 
+void *stack_pop(stack_dt *stack) 
 {
     if (stack == NULL || stack->top == NULL) 
     {
@@ -64,7 +64,7 @@ void *stack_pop(stack_t *stack)
 }
 
 
-int stack_push(stack_t *stack, void *data) 
+int stack_push(stack_dt *stack, void *data) 
 {
     if (stack == NULL) 
     {

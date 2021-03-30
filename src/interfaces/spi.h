@@ -1,14 +1,15 @@
 #ifndef SPI_H
 #define SPI_H
 
-#define SPICOMMAND_READ_GPIO  (spiCommand){0xFC, 1, 1}
-#define SPICOMMAND_WRITE_GPIO (spiCommand){0xFD, 2, 0}
+#define SPICOMMAND_READ_BINARY  (spiCommand){0xFC, 1, 1}
+#define SPICOMMAND_WRITE_BINARY (spiCommand){0xFD, 2, 0}
 
 //TODO give the correct command to the sensors and actuators with the config data
 
 #include <bcm2835.h>
 #include <stdio.h>
 #include <pthread.h>
+#include "SensorsActuators.h"
 
 typedef struct spiCommand_s
 {
@@ -26,6 +27,10 @@ typedef struct spiAnswer_s
 
 int setupSPIInterface();
 void closeSPIInterface();
-spiAnswer executeSPICommand(spiCommand command, char* data, pthread_mutex_t* mutex);
+int SPIReadSensor(Sensor* sensor, pthread_mutex_t* mutex);
+int SPIReadActuator(Actuator* actuator, pthread_mutex_t* mutex);
+int SPIWriteSensor(Sensor* sensor, pthread_mutex_t* mutex);
+int SPIWriteActuator(Actuator* actuator, pthread_mutex_t* mutex);
+
 
 #endif

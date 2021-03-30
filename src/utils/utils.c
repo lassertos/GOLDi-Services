@@ -7,6 +7,10 @@
 char* readFile(char* filename, unsigned int* filesize)
 {
     FILE *f = fopen(filename, "rb");
+    if (f == NULL)
+    {
+        return NULL;
+    }
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -41,10 +45,19 @@ char* encodeBase64(char* string, unsigned int lengthString)
 {
     if (lengthString < 1)
     {
-        return "";
+        return NULL;
     } 
 
-    unsigned int lengthPaddedString = lengthString + 3 - (lengthString % 3);
+    unsigned int lengthPaddedString;
+
+    if (lengthString % 3 != 0)
+    {
+        lengthPaddedString = lengthString + 3 - (lengthString % 3);
+    }
+    else
+    {
+        lengthPaddedString = lengthString;
+    }
     unsigned int lengthBase64String = (lengthPaddedString / 3) * 4;
 
     char* paddedString = malloc(lengthPaddedString + 1);

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include "../logging/log.h"
 #include "goldi-programmer.h"
 #include "bcmGPIO.h"
 
@@ -159,17 +160,24 @@ static struct libxsvf_host h = {
 int programFPGA(char* filepath)
 {
 	if (!bcm2835_init())
+	{
+		log_error("gpio interface could not be started");
 		return 1;
+	}
 		
 	u.f = fopen(filepath, "rb");
 	if (u.f == NULL) {
+		log_error("programming file could not be read");
 		return 1;
 	}
 	if(libxsvf_play(&h, LIBXSVF_MODE_SVF) < 0) {
-		return 0;
+		log_error("error occurred during programming");
+		return 1;
 	}
+
+	bcm2835_close();
 	
-	return 1;
+	return 0;
 }
 
 int programControlUnitFPGA(char* filepath)
@@ -180,8 +188,8 @@ int programControlUnitFPGA(char* filepath)
 		return 1;
 	}
 	if(libxsvf_play(&h, LIBXSVF_MODE_SVF) < 0) {
-		return 0;
+		return 1;
 	}
 	
-	return 1;
+	return 0;
 }

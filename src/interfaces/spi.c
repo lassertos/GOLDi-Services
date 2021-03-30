@@ -1,5 +1,6 @@
 #include "spi.h"
 #include <string.h>
+#include "../logging/log.h"
 
 int setupSPIInterface()
 {
@@ -24,59 +25,112 @@ void closeSPIInterface()
     bcm2835_close();
 }
 
-// TODO: look if it needs a revamp and add return value for failure
-spiAnswer executeSPICommand(spiCommand command, char* data, pthread_mutex_t* mutex)
+spiCommand SensorTypeToSPICommandRead(SensorType sensorType)
 {
-    spiAnswer answer = {NULL, 0};
+    switch (sensorType)
+    {
+        case SensorTypeBinary:
+            return SPICOMMAND_READ_BINARY;
+        
+        default:
+            log_error("SPI: unknown SensorType");
+            return (spiCommand){0x00, 0, 0};
+    }
+}
+
+spiCommand ActuatorTypeToSPICommandRead(ActuatorType actuatorType)
+{
+    switch (actuatorType)
+    {
+        case ActuatorTypeBinary:
+            return SPICOMMAND_READ_BINARY;
+        
+        default:
+            log_error("SPI: unknown ActuatorType");
+            return (spiCommand){0x00, 0, 0};
+    }
+}
+
+spiCommand SensorTypeToSPICommandWrite(SensorType sensorType)
+{
+    switch (sensorType)
+    {
+        case SensorTypeBinary:
+            return SPICOMMAND_WRITE_BINARY;
+        
+        default:
+            log_error("SPI: unknown SensorType");
+            return (spiCommand){0x00, 0, 0};
+    }
+}
+
+spiCommand ActuatorTypeToSPICommandWrite(ActuatorType actuatorType)
+{
+    switch (actuatorType)
+    {
+        case ActuatorTypeBinary:
+            return SPICOMMAND_WRITE_BINARY;
+        
+        default:
+            log_error("SPI: unknown ActuatorType");
+            return (spiCommand){0x00, 0, 0};
+    }
+}
+
+int executeSPICommand(spiCommand command, unsigned char pinMapping, char* value, pthread_mutex_t* mutex)
+{
     int completeCommandLength = 1 + command.dataLength + command.answerLength;
     char* completeCommand = malloc(completeCommandLength);
     if (completeCommand == NULL)
     {
-        return answer;
+        log_error("SPI: error occurred during malloc");
+        return -1;
     }
 
     completeCommand[0] = command.command;
-    memcpy(completeCommand + 1, data, command.dataLength);
-    for (int i = 0; i < command.dataLength; i++)
+    completeCommand[1] = pinMapping;
+    memcpy(completeCommand + 2, value, command.dataLength-1);
+    for (int i = 0; i < command.answerLength; i++)
     {
         completeCommand[1 + command.dataLength + i] = 0;
     }
-
-    printf("SPICOMMAND: ");
-    for (int i = 0; i < completeCommandLength - command.answerLength; i++)
-    {  
-        printf("%x", completeCommand[i] & 0xff);
-    }
-    printf("\n");
 
     pthread_mutex_lock(mutex);
     bcm2835_spi_transfern(completeCommand, completeCommandLength);
     pthread_mutex_unlock(mutex);
 
-    printf("SPIANSWER: ");
-    for (int i = 0; i < command.answerLength; i++)
-    {  
-        printf("%x", completeCommand[i] & 0xff);
-    }
-    printf("\n");
-
-    //TODO check if it really works like that
     if (command.answerLength > 0)
     {
-        answer.content = malloc(command.answerLength);
         for (int i = 0; i < command.answerLength; i++)
         {
-            answer.content[i] = completeCommand[completeCommandLength - command.answerLength + i];
+            value[i] = completeCommand[completeCommandLength - command.answerLength + i];
         }
-        free(completeCommand);
     }
-    else 
-    {
-        answer.content = NULL;
-        free(completeCommand);
-    }    
+    free(completeCommand);
+    return 0;
+}
 
-    answer.length = command.answerLength;
 
-    return answer;
+int SPIReadSensor(Sensor* sensor, pthread_mutex_t* mutex)
+{
+    spiCommand command = SensorTypeToSPICommandRead(sensor->type);
+    return executeSPICommand(command, sensor->pinMapping, sensor->value, mutex);
+}
+
+int SPIReadActuator(Actuator* actuator, pthread_mutex_t* mutex)
+{
+    spiCommand command = ActuatorTypeToSPICommandRead(actuator->type);
+    return executeSPICommand(command, actuator->pinMapping, actuator->value, mutex);
+}
+
+int SPIWriteSensor(Sensor* sensor, pthread_mutex_t* mutex)
+{
+    spiCommand command = SensorTypeToSPICommandWrite(sensor->type);
+    return executeSPICommand(command, sensor->pinMapping, sensor->value, mutex);
+}
+
+int SPIWriteActuator(Actuator* actuator, pthread_mutex_t* mutex)
+{
+    spiCommand command = ActuatorTypeToSPICommandWrite(actuator->type);
+    return executeSPICommand(command, actuator->pinMapping, actuator->value, mutex);
 }

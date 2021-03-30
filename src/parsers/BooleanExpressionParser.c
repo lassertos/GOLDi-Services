@@ -1,4 +1,5 @@
-#include "ExpressionParsers.h"
+#include "BooleanExpressionParser.h"
+#include "../logging/log.h"
 
 /* All possible token types used in the shunting-yard-algorithm */
 typedef enum TokenTypes
@@ -23,6 +24,20 @@ typedef struct Token_s
     unsigned int length;
 } Token;
 
+Variable* getVariableWithName(Variable* variables, char* name, int variablesCount)
+{
+    Variable* current = variables;
+    for (int i = 0; i < variablesCount; i++)
+    {
+        if (!strcmp(current->name, name))
+        {
+            return current;
+        }
+        current++;
+    }
+    return NULL;
+}
+
 static unsigned int isNumber(char *str, int length)
 {
     for (int i = 0; i < length; i++)
@@ -35,13 +50,20 @@ static unsigned int isNumber(char *str, int length)
     return 1;
 }
 
-static unsigned long long parseNumber(char *str, int length)
+static char* parseNumber(char *str, int length)
 {
-    int result = 0;
+    long long number = 0;
+    unsigned int size = sizeof(long long);
+    char* result = malloc(size);
     for (int i = 0; i < length; i++)
     {
-        result = result * 10 + (str[i] - 48);
+        number = number * 10 + (str[i] - 48);
     }
+    for (int i = 0; i < size/8; i++)
+    {
+        result[i] = (number << (i * 8)) >> (size - 8);
+    }
+    free(str);
     return result;
 }
 
@@ -94,7 +116,7 @@ static void printTokenQueue(queue_t* queue)
 }
 
 /* can be used to print an overview of the stack */
-static void printTokenStack(stack_t *stack)
+static void printTokenStack(stack_dt *stack)
 {
     printf("Current stack:\n");
     if (stack_empty(stack))
@@ -141,7 +163,7 @@ static void removeDoubleNegation(char *str, unsigned int length)
 
 /* Is called when an operator is found in the given expression TODO: error handling*/
 static int shuntingyardReadOperator(char operator, char *firstOperand, unsigned int *sizeFirstOperand, 
-                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_t *stack)
+                            unsigned int *startIndexFirstOperand, queue_t *queue, stack_dt *stack)
 {
     int precedence = getOperatorPrecedence(operator);
 
@@ -188,7 +210,7 @@ static queue_t *shuntingyardAlgorithm(char *str, unsigned int length)
 {
     removeDoubleNegation(str, strlen(str));
 	queue_t *queue = queue_new();
-	stack_t *stack = stack_new();
+	stack_dt *stack = stack_new();
     char currentValue[length];
     unsigned int sizeCurrentValue = 0;
     unsigned int startIndexCurrentValue = 0;
@@ -251,7 +273,7 @@ static queue_t *shuntingyardAlgorithm(char *str, unsigned int length)
                 {
                     if(stack_empty(stack))
                     {
-                        printf("Error: Too many closing parentheses\n");
+                        log_error("BooleanExpressionParser: Too many closing parentheses\n");
                         return NULL;
                     }
                     queue_enqueue(queue, stack_pop(stack));
@@ -321,12 +343,76 @@ void destroyBooleanExpression(BooleanExpression *expression)
         free(expression->name);
     }
 
-    if (expression->name == NULL && expression->result != NULL)
+    if (expression->name == NULL && expression->value != NULL)
     {
-        free(expression->result);
+        free(expression->value);
     }
 
     free(expression);
+}
+
+int inVariables(Token* token, Variable* variables, unsigned int variablesCount)
+{
+    for (int i = 0; i < variablesCount; i++)
+    {
+        if (token->length == strlen(variables[i].name))
+        {
+            unsigned int isEqual = 1;
+            for (int j = 0; j < token->length; j++)
+            {
+                if (token->content[j] != variables[i].name[j])
+                {
+                    isEqual = 0;
+                }
+            }
+            if (isEqual)
+            {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+char* adaptConstant(BooleanExpression* expression)
+{
+    switch (expression->operandType)
+    {
+        case OperandTypeBinary:
+            expression->valueSize = 1;
+            char* result = malloc(1);
+            if (!strcmp(expression->value, "1"))
+            {
+                result[0] = 1;
+            }
+            else if (!strcmp(expression->value, "0"))
+            {
+                result[0] = 0;
+            }
+            else
+            {
+                free(result);
+                return NULL;
+            }
+            free(expression->value);
+            return result;
+            break;
+
+        case OperandTypeNumber:
+            expression->valueSize = sizeof(long long);
+            if (isNumber(expression->value, strlen(expression->value)))
+            {
+                return parseNumber(expression->value, strlen(expression->value));
+            }
+            else
+            {
+                return NULL;
+            }
+            break;
+        
+        default:
+            return NULL;
+    }
 }
 
 /* this function is used to parse a boolean expression from a string with given length */
@@ -334,7 +420,7 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
 {
     queue_t *queue = shuntingyardAlgorithm(str, length);
     BooleanExpression *expression;
-    stack_t *expressionStack = stack_new();
+    stack_dt *expressionStack = stack_new();
 
     while (!queue_empty(queue))
     {
@@ -345,11 +431,13 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
             case TokenTypeOperator:
             {
                 BooleanExpression *operation = malloc(sizeof(BooleanExpression));
-                *operation = (BooleanExpression){BoolExprLEAF, NULL, NULL, operation, NULL, NULL};
+                *operation = (BooleanExpression){BoolExprCONSTANT, NULL, NULL, NULL, NULL, NULL, 1, OperandTypeUnknown, OperandTypeBinary};
 
                 if (token->content[0] == '!')
                 {
                     operation->type = BoolExprNOT;
+                    operation->operandType = OperandTypeBinary;
+                    operation->valueSize = 1;
                     operation->leftside = (BooleanExpression*)stack_pop(expressionStack);
                     operation->leftside->parent = operation;
                 }
@@ -359,24 +447,72 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
                     {
                         case '&':
                             operation->type = BoolExprAND;
+                            operation->operandType = OperandTypeBinary;
+                            operation->valueSize = 1;
                             break;
                         case '|':
                             operation->type = BoolExprOR;
+                            operation->operandType = OperandTypeBinary;
+                            operation->valueSize = 1;
                             break;
                         case '>':
                             operation->type = BoolExprGREATER;
+                            operation->operandType = OperandTypeNumber;
+                            operation->valueSize = 1;
                             break;
                         case '<':
                             operation->type = BoolExprLOWER;
+                            operation->operandType = OperandTypeNumber;
+                            operation->valueSize = 1;
                             break;
                         case '=':
                             operation->type = BoolExprEQUAL;
+                            operation->operandType = OperandTypeNumber;
+                            operation->valueSize = 1;
                             break;
                     }
+
+                    /* get the right child */
                     operation->rightside = (BooleanExpression*)stack_pop(expressionStack);
                     operation->rightside->parent = operation;
+
+                    if (operation->rightside->operandType == OperandTypeUnknown) // right child is a constant
+                    {
+                        operation->rightside->operandType = operation->operandType;
+                        operation->rightside->resultType = operation->operandType;
+                        operation->rightside->value = adaptConstant(operation->rightside);
+                    }
+                    else if (operation->rightside->operandType != operation->operandType)
+                    {
+                        log_error("BooleanExpressionParser: OperandTypes do not match!");
+                        return NULL;
+                    }
+                    else if (operation->rightside->resultType != operation->operandType)
+                    {
+                        log_error("BooleanExpressionParser: ResultType and OperandType do not match!");
+                        return NULL;
+                    }
+
+                    /* get the left child */
                     operation->leftside = (BooleanExpression*)stack_pop(expressionStack);
                     operation->leftside->parent = operation;
+
+                    if (operation->leftside->operandType == OperandTypeUnknown) // left child is a constant
+                    {
+                        operation->leftside->operandType = operation->operandType;
+                        operation->leftside->resultType = operation->operandType;
+                        operation->leftside->value = adaptConstant(operation->leftside);
+                    }
+                    else if (operation->leftside->operandType != operation->operandType)
+                    {
+                        log_error("BooleanExpressionParser: OperandTypes do not match!");
+                        return NULL;
+                    }
+                    else if (operation->leftside->resultType != operation->operandType)
+                    {
+                        log_error("BooleanExpressionParser: ResultType and OperandType do not match!");
+                        return NULL;
+                    }
                 }
                 stack_push(expressionStack, operation);
                 break;
@@ -385,29 +521,29 @@ BooleanExpression *parseBooleanExpression(char* str, unsigned int length, Variab
             case TokenTypeOperand:
             {
                 BooleanExpression *leaf = malloc(sizeof(BooleanExpression));
-                *leaf = (BooleanExpression){BoolExprLEAF, NULL, NULL, leaf, NULL, NULL};
+                *leaf = (BooleanExpression){BoolExprCONSTANT, NULL, NULL, leaf, NULL, NULL, 0, OperandTypeUnknown, OperandTypeUnknown};
 
-                if (isNumber(token->content, token->length))
+                int index = inVariables(token, variables, variablesCount);
+                if (index != -1)
                 {
-                    leaf->result = malloc(sizeof(long long));
-                    *leaf->result = parseNumber(token->content, token->length);
-                }
-                else
-                {
+                    leaf->type = BoolExprVARIABLE;
+                    leaf->resultType = OperandTypeBinary;
+                    leaf->operandType = variables[index].type;
                     leaf->name = malloc(token->length+1);
                     memcpy(leaf->name, token->content, token->length);
                     leaf->name[token->length] = '\0';
-                    for (int i = 0; i < variablesCount; i++)
-                    {
-                        if (!strncmp(variables[i].name, leaf->name, strlen(variables[i].name)))
-                        {
-                            leaf->result = (long long*)variables[i].address;
-                        }
-                    }
-                    if (leaf->result == NULL)
+                    leaf->value = variables[index].value;
+                    leaf->valueSize = variables[index].valueSize;
+                    if (leaf->value == NULL)
                     {
                         return NULL;
                     }
+                }
+                else
+                {
+                    leaf->value = malloc(token->length+1);
+                    memcpy(leaf->value, token->content, token->length);
+                    leaf->value[token->length] = '\0';
                 }
 
                 stack_push(expressionStack, leaf);
@@ -434,11 +570,37 @@ void printBooleanExpression(BooleanExpression *expression)
         printf("The BooleanExpression points to NULL\n");
         return;
     }
-    if (expression->type == BoolExprLEAF)
+    if (expression->type == BoolExprCONSTANT)
     {
         if (expression->name != NULL)
-            printf("%s:", expression->name);
-        printf("%lld", *expression->result);
+            printf("%s:[", expression->name);
+        for (int i = 0; i < expression->valueSize; i++)
+        {
+            if (!(i == expression->valueSize-1)) 
+            {
+                printf("%d, ", expression->value[i]);
+            }
+            else
+            {
+                printf("%d]", expression->value[i]);
+            }
+        }
+    }
+    else if (expression->type == BoolExprVARIABLE)
+    {
+        if (expression->name != NULL)
+            printf("%s:[", expression->name);
+        for (int i = 0; i < expression->valueSize; i++)
+        {
+            if (!(i == expression->valueSize-1)) 
+            {
+                printf("%d, ", expression->value[i]);
+            }
+            else
+            {
+                printf("%d]", expression->value[i]);
+            }
+        }
     }
     else if (expression->type == BoolExprNOT)
     {
@@ -470,87 +632,300 @@ void printBooleanExpression(BooleanExpression *expression)
         printBooleanExpression(expression->rightside);
         printf(")");
     }
-    if (expression->parent == expression)
+    if (expression->parent == NULL)
     {
         printf("\n");
     }
 }
 
-int evaluateBooleanExpression(BooleanExpression *expression)
+char* calculateValue(BooleanExpression* expression)
 {
-    int result1 = 0;
-    int result2 = 0;
+    char* result1;
+    char* result2;
+    char* result;
     switch (expression->type)
     {
-    case BoolExprLEAF:
-        if (expression->result != NULL)
+        case BoolExprCONSTANT:
         {
-            return *expression->result;
+            if (expression->value != NULL)
+            {
+                return expression->value;
+            }
+            return NULL;
         }
+
+        case BoolExprVARIABLE:
+        {
+            if (expression->value != NULL)
+            {
+                return expression->value;
+            }
+            return NULL;
+        }
+
+        case BoolExprAND:
+        {
+            result1 = calculateValue(expression->leftside);
+            result2 = calculateValue(expression->rightside);
+            if (result1 == NULL || result2 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            if (result1[0] && result2[0])
+            {
+                result[0] = 1;
+            }
+            else 
+            {
+                result[0] = 0;
+            }
+            return result;
+        }
+
+        case BoolExprOR:
+        {
+            result1 = calculateValue(expression->leftside);
+            result2 = calculateValue(expression->rightside);
+            if (result1 == NULL || result2 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            if (result1[0] || result2[0])
+            {
+                result[0] = 1;
+            }
+            else 
+            {
+                result[0] = 0;
+            }
+            return result;
+        }
+
+        case BoolExprNOT:
+        {
+            result1 = calculateValue(expression->leftside);
+            if (result1 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            if (!result1[0])
+            {
+                result[0] = 1;
+            }
+            else 
+            {
+                result[0] = 0;
+            }
+            return result;
+        }
+
+        case BoolExprEQUAL:
+        {
+            result1 = calculateValue(expression->leftside);
+            result2 = calculateValue(expression->rightside);
+            unsigned int result1Size = expression->leftside->valueSize;
+            unsigned int result2Size = expression->rightside->valueSize;
+            if (result1 == NULL || result2 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            result[0] = 1;
+            if (result1Size > result2Size)
+            {
+                for (int i = 0; i < result1Size - result2Size; i++)
+                {
+                    if (result1[i] != 0)
+                    {
+                        result[0] = 0;
+                        return result;
+                    }
+                }
+                for (int i = result1Size - result2Size; i < result1Size; i++)
+                {
+                    int j = i - (result1Size - result2Size);
+                    if (result1[i] != result2[j])
+                    {
+                        result[0] = 0;
+                        return result;
+                    }
+                }
+            }
+            else 
+            {
+                for (int i = 0; i < result2Size - result1Size; i++)
+                {
+                    if (result2[i] != 0)
+                    {
+                        result[0] = 0;
+                        return result;
+                    }
+                }
+                for (int i = result2Size - result1Size; i < result2Size; i++)
+                {
+                    int j = i - (result2Size - result1Size);
+                    if (result1[i] != result2[j])
+                    {
+                        result[0] = 0;
+                        return result;
+                    }
+                }
+            }
+            return result;
+        }
+
+        case BoolExprGREATER:
+        {
+            result1 = calculateValue(expression->leftside);
+            result2 = calculateValue(expression->rightside);
+            unsigned int result1Size = expression->leftside->valueSize;
+            unsigned int result2Size = expression->rightside->valueSize;
+            if (result1 == NULL || result2 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            result[0] = 0;
+            if (result1Size > result2Size)
+            {
+                for (int i = 0; i < result1Size - result2Size; i++)
+                {
+                    if (result1[i] != 0)
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                }
+                for (int i = result1Size - result2Size; i < result1Size; i++)
+                {
+                    int j = i - (result1Size - result2Size);
+                    if (result1[i] > result2[j])
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                    else if (result1[i] < result2[j])
+                    {
+                        return result;
+                    }
+                }
+            }
+            else 
+            {
+                for (int i = 0; i < result2Size - result1Size; i++)
+                {
+                    if (result2[i] != 0)
+                    {
+                        return result;
+                    }
+                }
+                for (int i = result2Size - result1Size; i < result2Size; i++)
+                {
+                    int j = i - (result2Size - result1Size);
+                    if (result1[i] > result2[j])
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                    else if (result1[i] < result2[j])
+                    {
+                        return result;
+                    }
+                }
+            }
+            return result;
+        }
+
+        case BoolExprLOWER:
+        {
+            result1 = calculateValue(expression->leftside);
+            result2 = calculateValue(expression->rightside);
+            unsigned int result1Size = expression->leftside->valueSize;
+            unsigned int result2Size = expression->rightside->valueSize;
+            if (result1 == NULL || result2 == NULL)
+            {
+                return NULL;
+            }
+            result = malloc(1);
+            result[0] = 0;
+            if (result1Size > result2Size)
+            {
+                for (int i = 0; i < result1Size - result2Size; i++)
+                {
+                    if (result1[i] != 0)
+                    {
+                        return result;
+                    }
+                }
+                for (int i = result1Size - result2Size; i < result1Size; i++)
+                {
+                    int j = i - (result1Size - result2Size);
+                    if (result1[i] < result2[j])
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                    else if (result1[i] > result2[j])
+                    {
+                        return result;
+                    }
+                }
+            }
+            else 
+            {
+                for (int i = 0; i < result2Size - result1Size; i++)
+                {
+                    if (result2[i] != 0)
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                }
+                for (int i = result2Size - result1Size; i < result2Size; i++)
+                {
+                    int j = i - (result2Size - result1Size);
+                    if (result1[i] < result2[j])
+                    {
+                        result[0] = 1;
+                        return result;
+                    }
+                    else if (result1[i] > result2[j])
+                    {
+                        return result;
+                    }
+                }
+            }
+            return result;
+        }
+        
+        default:
+            break;
+    }
+}
+
+int evaluateBooleanExpression(BooleanExpression *expression)
+{
+    if (expression->resultType != OperandTypeBinary || expression->valueSize != 1)
+    {
         return -1;
-        break;
-
-    case BoolExprAND:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        result2 = evaluateBooleanExpression(expression->rightside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return result1 && result2;
-        break;
-
-    case BoolExprOR:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        result2 = evaluateBooleanExpression(expression->rightside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return result1 || result2;
-        break;
-
-    case BoolExprNOT:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return !result1;
-        break;
-
-    case BoolExprEQUAL:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        result2 = evaluateBooleanExpression(expression->rightside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return result1 == result2;
-        break;
-
-    case BoolExprGREATER:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        result2 = evaluateBooleanExpression(expression->rightside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return result1 > result2;
-        break;
-
-    case BoolExprLOWER:
-        result1 = evaluateBooleanExpression(expression->leftside);
-        result2 = evaluateBooleanExpression(expression->rightside);
-        if (result1 == -1 || result2 == -1)
-        {
-            return -1;
-        }
-        return result1 < result2;
-        break;
-    
-    default:
-        break;
     }
 
+    char* result = calculateValue(expression);
+
+    if (result == NULL)
+    {
+        return -1;
+    }
+
+    if (*result = 1)
+    {
+        return 1;
+    }
+    else 
+    {
+        return 0;
+    }
 }

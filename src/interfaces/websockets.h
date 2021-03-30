@@ -8,13 +8,13 @@
 #include <pthread.h>
 
 //TODO change to real values
-#define GOLDi_SERVERADDRESS "192.168.179.24"
-#define GOLDi_SERVERPORT 8082
+#define GOLDi_SERVERADDRESS "192.168.179.37"
+#define GOLDi_SERVERPORT 8083
+#define GOLDi_WEBCAMPORT 8084
 
-#define COMMUNICATION_PROTOCOL (struct lws_protocols){ "GOLDi-Communication-Protocol", callback_communication, 0, 0 }
-#define WEBCAM_PROTOCOL (struct lws_protocols){ "GOLDi-Webcam-Protocol", callback_webcam, 0, 0 }
+#define WEBSOCKET_PROTOCOL (struct lws_protocols){ "GOLDi-Websocket-Protocol", callback, 0, 65536 }
 
-typedef int(*msgHandler)(struct lws*, char*);
+typedef int(*websocketMsgHandler)(struct lws*, char*);
 typedef struct 
 {
     lws_sorted_usec_list_t              sul;
@@ -25,7 +25,7 @@ typedef struct
     struct lws_context_creation_info    info;
     int                                 port;
     char*                               serveraddress;
-    msgHandler                          messageHandler;
+    websocketMsgHandler                 messageHandler;
     int                                 isServer;
     char*                               ID;
     volatile int                        connectionEstablished;
@@ -71,9 +71,8 @@ enum WebsocketCommands
     WebsocketCommandInfrastructureError     = 44
 };
 
-int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, msgHandler messageHandler, int isServer);
-int callback_communication(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
-int callback_webcam(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
+int websocketPrepareContext(websocketConnection* wsc, struct lws_protocols protocol, char* serveraddress, int port, websocketMsgHandler messageHandler, int isServer);
+int callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 int sendMessageWebsocket(struct lws *wsi, char* msg);
 
 #endif
