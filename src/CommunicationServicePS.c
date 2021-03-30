@@ -38,7 +38,7 @@ static void signal_handler(int sig)
     log_debug("received a signal");
     if (sig == SIGUSR1)
     {
-        if (inExperiment)
+        if (!inExperiment)
         {
             log_debug("scheduling restart");
             system("shutdown -r 5");
